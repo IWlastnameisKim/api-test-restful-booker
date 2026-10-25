@@ -23,11 +23,17 @@ Postman과 Newman으로 구성한 REST API 테스트 프로젝트입니다.
 - **Newman**: Postman 컬렉션을 터미널에서 실행
 - **newman-reporter-htmlextra**: HTML 리포트 생성
 - **Node.js / npm**
+- **GitHub Actions**: push 시 자동 실행, 리포트 보관
+- **Dependabot**: npm 패키지·액션 버전 업데이트 PR 자동 생성
 
 ## 프로젝트 구조
 
 ```
 api-test-restful-booker/
+ ├─ .github/
+ │   ├─ workflows/
+ │   │   └─ api-test.yml                         # CI: smoke / regression job
+ │   └─ dependabot.yml                           # 의존성 업데이트 설정
  ├─ collections/
  │   └─ Restful-booker.postman_collection.json   # 요청과 테스트 스크립트
  ├─ env/
@@ -46,39 +52,64 @@ api-test-restful-booker/
 | 01-Setup | 테스트 준비 | 토큰 발급, 예약 생성 후 `token`·`bookingid`를 Environment에 자동 저장 |
 | 02-Flow | 정상 흐름 검증 | 예약 조회 → 수정 → 재조회로 변경 내용이 실제 저장됐는지 확인 |
 | 03-Regression | 회귀 테스트 | 발견한 결함 10건. 올바른 동작(명세)을 기대값으로 작성 |
-| 04-CleanUp | 정리와 삭제 검증 | 예약 삭제 → 삭제 후 조회(404) → 재삭제 |
+| 04-CleanUp | 정리와 삭제 검증 | 예약 삭제 → 삭제 후 조회(404) |
+| 05-Regression-Delete | 회귀 테스트 | 이미 삭제된 예약 재삭제. 삭제 이후에 실행되어야 해서 CleanUp 뒤에 위치 |
+
+### 실행 그룹
+
+폴더를 조합해 두 가지로 나누어 실행합니다. 두 그룹 모두 `01-Setup`을 포함하는데, Newman은 매번 빈 `token`·`bookingid`에서 시작하기 때문입니다.
+
+| 그룹 | 폴더 | 목적 | 실패 시 |
+| --- | --- | --- | --- |
+| smoke | 01-Setup, 02-Flow, 04-CleanUp | 정상 기능 동작 확인 | 파이프라인 실패 (진짜 문제) |
+| regression | 01-Setup, 03-Regression, 04-CleanUp, 05-Regression-Delete | 알려진 결함 추적 | 기록만, 파이프라인은 통과 |
 
 ## 실행 방법
 
 ```bash
-# 의존성 설치
-npm install
+# 의존성 설치 (package-lock.json의 버전 그대로)
+npm ci
 
-# 테스트 실행 (터미널 출력 + HTML 리포트)
+# 정상 흐름만
+npm run test:smoke
+
+# 알려진 결함 회귀 테스트
+npm run test:regression
+
+# 둘 다 (smoke 성공 시 regression 이어서 실행)
 npm run test:api
 ```
 
-`test:api`는 아래 명령과 같습니다.
+각 스크립트는 `newman run`에 `--folder`로 실행 그룹을 지정하고, 터미널 출력과 HTML 리포트를 함께 생성합니다.
 
-```bash
-newman run collections/Restful-booker.postman_collection.json \
-  -e env/restful-booker.postman_environment.json \
-  -r cli,htmlextra \
-  --reporter-htmlextra-export reports/report.html \
-  --reporter-htmlextra-logs
-```
+| 스크립트 | 리포트 |
+| --- | --- |
+| `test:smoke` | `reports/smoke.html` |
+| `test:regression` | `reports/regression.html` |
 
-실행 후 `reports/report.html`을 브라우저로 열면 요청별 결과, 실패 상세(기대값 vs 실제값), 스크립트의 console 기록을 확인할 수 있습니다.
+리포트의 Failed Tests 탭에서 실패 상세(기대값 vs 실제값)를, Total Requests 탭의 Console Log에서 스크립트가 남긴 기록(보낸 값과 저장된 값 등)을 확인할 수 있습니다.
+
+## CI (GitHub Actions)
+
+`main`에 push하거나 Actions 탭에서 수동 실행(`workflow_dispatch`)하면 `.github/workflows/api-test.yml`이 두 job을 병렬로 실행합니다.
+
+| job | 실행 | 설정 |
+| --- | --- | --- |
+| smoke | `npm run test:smoke` | 실패하면 워크플로 실패 |
+| regression | `npm run test:regression` | `continue-on-error: true`. 알려진 결함으로 job은 실패로 표시되지만 워크플로는 통과 |
+
+- 두 job 모두 `if: always()`로 테스트가 실패해도 리포트를 Artifacts(`smoke-report`, `regression-report`)로 업로드합니다.
+- `npm ci`와 `package-lock.json`으로 로컬과 CI가 같은 버전으로 실행되며, `setup-node`의 `cache: npm`으로 설치 시간을 줄입니다.
+- 버전은 고정하고, 업데이트는 Dependabot PR로 받아 CI 통과를 확인한 뒤 반영합니다.
 
 ## 실행 결과
 
-| 항목 | 실행 | 실패 |
-| --- | --- | --- |
-| requests | 18 | 0 |
-| test-scripts | 18 | 0 |
-| assertions | 20 | 11 |
+| 그룹 | requests | assertions | 실패 | 결과 |
+| --- | --- | --- | --- | --- |
+| smoke | 7 | 8 | 0 | 모두 통과 |
+| regression | 15 | 15 | 11 | 알려진 결함 11건 |
 
-실패 11건은 모두 **알려진 결함에 대한 회귀 테스트**입니다(03-Regression 10건 + 재삭제 1건). Setup, Flow, CleanUp의 정상 동작 검증은 모두 통과합니다.
+regression의 실패 11건은 모두 **알려진 결함에 대한 회귀 테스트**입니다(03-Regression 10건 + 재삭제 1건). 통과하는 4건은 Setup의 토큰 발급, `[Bug-1] 로그인 실패 시 토큰 없음`, CleanUp의 삭제와 삭제 후 조회입니다.
 결함이 수정되면 해당 테스트가 PASS로 바뀌고, 다시 FAIL이 되면 결함이 재발한 것으로 판단합니다.
 
 ## 발견한 결함
@@ -114,7 +145,9 @@ newman run collections/Restful-booker.postman_collection.json \
 
 ## 향후 계획
 
-- [ ] GitHub Actions로 push 시 자동 실행 및 리포트 보관
+- [x] GitHub Actions로 push 시 자동 실행 및 리포트 보관
+- [x] smoke / regression 분리 실행
+- [x] Dependabot으로 의존성 업데이트 자동화
 - [ ] 실패 메시지에 테스트 의도 추가 (`pm.expect(값, "설명")`)
 - [ ] 로그인 계정 정보를 Environment 변수로 분리
 - [ ] 데이터 파일(CSV)로 입력값 조합을 반복 실행하는 데이터 기반 테스트
