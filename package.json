@@ -9,7 +9,7 @@
   "keywords": [],
   "type": "commonjs",
   "devDependencies": {
-    "newman": "^4.6.1",
-    "newman-reporter-htmlextra": "^1.22.5"
+    "newman": "^6.2.3",
+    "newman-reporter-htmlextra": "^1.23.1"
   }
 }
