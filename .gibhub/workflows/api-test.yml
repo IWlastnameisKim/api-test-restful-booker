@@ -23,7 +23,7 @@ jobs:
         run: npm ci
 
       - name: API 테스트 실행
-        run: npm run collections/Restful-booker.postman_collection.json -e env/restful-booker.postman_environment.json -r cli,htmlextra --reporter-htmlextra-export reports/report.html --reporter-htmlextra-logs
+        run: npm newman run collections/Restful-booker.postman_collection.json -e env/restful-booker.postman_environment.json -r cli,htmlextra --reporter-htmlextra-export reports/report.html --reporter-htmlextra-logs
 
       - name: 리포트 업로드
         if: always()
