@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test:api": "newman run collections/Restful-booker.postman_collection.json -e env/restful-booker.postman_environment.json -r cli,htmlextra --reporter-htmlextra-export reports/report.html --reporter-htmlextra-logs"
+    "test:smoke": "newman run collections/Restful-booker.postman_collection.json -e env/restful-booker.postman_environment.json --folder 01-Setup --folder 02-Flow --folder 04-CleanUp -r cli,htmlextra --reporter-htmlextra-export reports/smoke.html --reporter-htmlextra-logs",
+    "test:regression": "newman run collections/Restful-booker.postman_collection.json -e env/restful-booker.postman_environment.json --folder 01-Setup --folder 03-Regression --folder 04-CleanUp --folder 05-Regression-Delete -r cli,htmlextra --reporter-htmlextra-export reports/regression.html --reporter-htmlextra-logs",
+    "test:api": "npm run test:smoke && npm run test:regression"
   },
   "keywords": [],
   "type": "commonjs",

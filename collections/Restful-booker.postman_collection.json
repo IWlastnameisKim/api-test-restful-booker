@@ -245,7 +245,7 @@
       ]
     },
     {
-      "name": "03-Regression - 1회차",
+      "name": "03-Regression",
       "item": [
         {
           "name": "[Bug-1] 로그인 실패 시 401 요청",
@@ -788,7 +788,12 @@
             }
           },
           "response": []
-        },
+        }
+      ]
+    },
+    {
+      "name": "05-Regression-Delete",
+      "item": [
         {
           "name": "재삭제",
           "event": [
