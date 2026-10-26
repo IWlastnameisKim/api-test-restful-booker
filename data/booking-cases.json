@@ -1,0 +1,110 @@
+[{
+    "case": "정상 생성",
+    "expectedStatus": 200,
+    "body": {
+        "firstname": "Kim", "lastname": "QA1", "totalprice": 990, "depositpaid": true,
+        "bookingdates": {
+            "checkin": "2026-10-20",
+            "checkout": "2026-11-01"
+            },
+        "additionalneeds": "brunch & liquor"
+        }
+},
+{
+    "case": "가격 경계값 1",
+    "expectedStatus": 200,
+    "body":{
+        "firstname": "Kim", "lastname": "QA2", "totalprice": 1, "depositpaid": true,
+        "bookingdates": {
+            "checkin": "2026-10-20",
+            "checkout": "2026-11-01"
+            },
+        "additionalneeds": "Allergic to orange"
+        }
+},
+{
+    "case": "가격 음수",
+    "expectedStatus": 400,
+    "body": {
+        "firstname": "Kim", "lastname": "QA3", "totalprice": -990, "depositpaid": true,
+        "bookingdates": {
+            "checkin": "2026-10-20",
+            "checkout": "2026-11-01"
+            },
+        "additionalneeds": "brunch & liquor"
+        }
+},
+{
+    "case": "가격에 문자열 포함",
+    "expectedStatus": 400,
+    "body": {
+        "firstname": "Kim", "lastname": "QA4", "totalprice": "9ㅁ90", "depositpaid": true,
+        "bookingdates": {
+            "checkin": "2026-10-20",
+            "checkout": "2026-11-01"
+            },
+        "additionalneeds": "brunch & liquor"
+        }
+},
+{
+    "case": "first name 누락",
+    "expectedStatus": 400,
+    "body": {
+        "lastname": "QA5", "totalprice": 990, "depositpaid": true,
+        "bookingdates": {
+            "checkin": "2026-10-20",
+            "checkout": "2026-11-01"
+            },
+        "additionalneeds": "brunch & liquor"
+        }
+},
+{
+    "case": "체크인*아웃 날짜 역전",
+    "expectedStatus": 400,
+    "body": {
+        "firstname": "Kim", "lastname": "QA6", "totalprice": 990, "depositpaid": true,
+        "bookingdates": {
+            "checkin": "2026-11-20",
+            "checkout": "2026-11-01"
+            },
+        "additionalneeds": "brunch & liquor"
+        }
+},
+{
+    "case": "체크인 형식 오류",
+    "expectedStatus": 400,
+    "body": {
+        "firstname": "Kim", "lastname": "QA7", "totalprice": 990, "depositpaid": true,
+        "bookingdates": {
+            "checkin": "26th Oct 2026",
+            "checkout": "2026-11-01"
+            },
+        "additionalneeds": "brunch & liquor"
+        }
+},
+{
+    "case": "depositpaid 문자열",
+    "expectedStatus": 400,
+    "body": {
+        "firstname": "Kim", "lastname": "QA8", "totalprice": 990, "depositpaid": "true",
+        "bookingdates": {
+            "checkin": "2026-10-20",
+            "checkout": "2026-11-01"
+            },
+        "additionalneeds": "brunch & liquor"
+        }
+},
+{
+    "case": "depositpaid 문자열 false값",
+    "expectedStatus": 400,
+    "body": {
+        "firstname": "Kim", "lastname": "QA9", "totalprice": 990, "depositpaid": "false",
+        "bookingdates": {
+            "checkin": "2026-10-20",
+            "checkout": "2026-11-01"
+            },
+        "additionalneeds": "brunch & liquor"
+        }
+}
+
+]

@@ -833,6 +833,67 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "06-Data-Driven",
+      "item": [
+        {
+          "name": "booking - 입력값 검증",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body= pm.iterationData.get(\"body\");\n\nif (body == undefined){\n    console.log(\"데이터 파일 없이 실행됨. Runner나 newman -d 로 실행하세요.\");\n}\n\npm.variables.set(\"requestBody\", JSON.stringify(body));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const caseName = pm.iterationData.get(\"case\")\nconst expected = pm.iterationData.get(\"expectedStatus\")\n\npm.test(`[Data]${caseName}-> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code).to.eql(expected);\n});\n\nif (pm.response.code !== expected){\n    console.log(`[Data]${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{requestBody}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
