@@ -54,7 +54,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 200){\n    const body = pm.response.json();\n\n    if (typeof body.bookingid === 'number'){\n        pm.environment.set(\"bookingid\", body.bookingid)\n    }\n} \nelse {\n    console.log(\"예약생성 실패\", pm.response.code, pm.response.text());\n}"
+                  "pm.test(\"[Setup] 예약 생성\", () => {\n  pm.expect(pm.response.code).to.eql(200);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n\n  if (typeof body.bookingid === \"number\") {\n    pm.environment.set(\"bookingid\", body.bookingid);\n  } else {\n    console.log(\"[Setup] 예약 생성 - bookingid 없음\", body);\n  }\n} else {\n  console.log(\"[Setup] 예약 생성 실패\", pm.response.code, pm.response.text());\n}"
                 ]
               }
             }
@@ -888,6 +888,203 @@
               ],
               "path": [
                 "booking"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07-Data-Driven-Patch",
+      "item": [
+        {
+          "name": "Auth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();\n\npm.test(\"인증토큰발급\", () => {\n  pm.response.to.have.status(200);\n  pm.expect(typeof body.token).to.eql(\"string\");\n});\n\nif (pm.response.code === 200 && typeof body.token === \"string\") {\n  pm.environment.set(\"token\", body.token);\n} else {\n  console.log(\"토큰발급 실패하여 기존 토큰 유지\", body);\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n\"username\" : \"admin\",\n\"password\" : \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH 용 예약생성",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.unset(\"originalBooking\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const caseName = pm.iterationData.get(\"case\");\n\npm.test(`[Patch-준비] ${caseName}: 예약 생성`, () => {\n  pm.expect(pm.response.code).to.eql(200);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n\n  if (typeof body.bookingid === \"number\") {\n    pm.environment.set(\"bookingid\", body.bookingid);\n    pm.variables.set(\"originalBooking\", JSON.stringify(body.booking));\n  } else {\n    console.log(`[Patch-준비] ${caseName} - bookingid 없음`, body);\n  }\n} else {\n  console.log(`[Patch-준비] ${caseName} - 예약 생성 실패`, pm.response.code, pm.response.text());\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstname\" : \"POST\",\n    \"lastname\" : \"PATCH\",\n    \"totalprice\" : 2300,\n    \"depositpaid\" : true,\n    \"bookingdates\" : {\n        \"checkin\" : \"2018-01-01\",\n        \"checkout\" : \"2019-01-01\"\n    },\n    \"additionalneeds\" : \"Breakfast\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.iterationData.get(\"body\");\n\nif (body === undefined) {\n  console.log(\"데이터 파일 없이 실행됨. Newman -d로 실행하세요.\");\n}\n\npm.variables.set(\"requestBody\", JSON.stringify(body));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const caseName = pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\n\npm.test(`[Patch] ${caseName} -> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code, `기대 ${expected}, 실제 ${pm.response.code}`).to.eql(expected);\n});\n\n\nif (pm.response.code !== expected) {\n    console.log(`[Patch] ${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{requestBody}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingid}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingid}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "수정 후 재조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const caseName = pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\nconst originalText = pm.variables.get(\"originalBooking\");\n\npm.test(`[Patch-재조회] ${caseName}: 예약 조회`, () => {\n    pm.expect(pm.response.code).to.eql(200);\n    pm.expect(originalText, \"원본 없음: 예약 생성 단계 실패\").to.exist;\n});\n\nif (pm.response.code === 200 && originalText) {\n    const original = JSON.parse(originalText);\n    const sent = JSON.parse(pm.variables.get(\"requestBody\"));\n    const saved = pm.response.json();\n\n    if (expected === 200) {\n        const expectedBooking = {\n            ...original,\n            ...sent,\n            bookingdates: { ...original.bookingdates, ...(sent.bookingdates || {}) }\n        };\n\n        pm.test(`[Patch-재조회] ${caseName}: 보낸 필드만 바뀌고 나머지는 유지`, () => {\n            pm.expect(saved).to.eql(expectedBooking);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(expectedBooking)) {\n            console.log(`[Patch-재조회] ${caseName}`);\n            console.log(\"기대:\", JSON.stringify(expectedBooking));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    } else {\n        pm.test(`[Patch-재조회] ${caseName}: 거절된 요청이라 원본 유지`, () => {\n            pm.expect(saved).to.eql(original);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(original)) {\n            console.log(`[Patch-재조회] ${caseName}: 거절돼야 할 요청인데 값이 바뀜`);\n            console.log(\"원본:\", JSON.stringify(original));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    }\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingid}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingid}}"
               ]
             }
           },

@@ -1,0 +1,190 @@
+[
+  {"case": "[전체] 모든 필드 정상 수정 A", 
+  "expectedStatus": 200, 
+  "body": {
+    "firstname": "KimPatch", "lastname": "QA", "totalprice": 8990, "depositpaid": true, 
+    "bookingdates": {
+        "checkin": "2026-10-20", 
+        "checkout": "2026-11-01"}, 
+    "additionalneeds": "brunch & liquor PATCH"}},
+
+  {"case": "[전체] 모든 필드 정상 수정 B (deposit false)", 
+  "expectedStatus": 200, 
+  "body": {
+    "firstname": "Lee", "lastname": "Tester", "totalprice": 1, "depositpaid": false, 
+    "bookingdates": {
+        "checkin": "2026-12-24", 
+        "checkout": "2026-12-26"}, 
+    "additionalneeds": "Allergic to orange"}},
+
+  {"case": "[단일] firstname만 수정", 
+  "expectedStatus": 200, 
+  "body": {
+    "firstname": "KimPatch"}},
+
+  {"case": "[단일] lastname만 수정", 
+  "expectedStatus": 200, 
+  "body": {
+    "lastname": "QA"}},
+
+  {"case": "[단일] totalprice만 수정", 
+  "expectedStatus": 200, 
+  "body": {
+    "totalprice": 8990}},
+
+  {"case": "[단일] totalprice 경계값 1", 
+  "expectedStatus": 200, 
+  "body": {
+    "totalprice": 1}},
+
+  {"case": "[단일] depositpaid만 false로 수정", 
+  "expectedStatus": 200, 
+  "body": {
+    "depositpaid": false}},
+
+  {"case": "[단일] bookingdates 전체 수정", 
+  "expectedStatus": 200, 
+  "body": {
+    "bookingdates": {
+        "checkin": "2018-06-01", 
+        "checkout": "2018-06-10"}}},
+
+  {"case": "[단일] additionalneeds만 수정", 
+  "expectedStatus": 200, 
+  "body": {
+    "additionalneeds": "Late checkout"}},
+
+  {"case": "[타입] firstname 숫자", 
+  "expectedStatus": 400, 
+  "body": {
+    "firstname": 123}},
+
+  {"case": "[타입] lastname boolean", 
+  "expectedStatus": 400, 
+  "body": {
+    "lastname": true}},
+
+  {"case": "[타입] totalprice 숫자 문자열", 
+  "expectedStatus": 400, 
+  "body": {
+    "totalprice": "990"}},
+
+  {"case": "[타입] totalprice 문자 섞임", 
+  "expectedStatus": 400, 
+  "body": {
+    "totalprice": "9ㅁ90"}},
+
+  {"case": "[타입] depositpaid 문자열 true", 
+  "expectedStatus": 400, 
+  "body": {
+    "depositpaid": "true"}},
+
+  {"case": "[타입] depositpaid 문자열 false", 
+  "expectedStatus": 400, 
+  "body": {
+    "depositpaid": "false"}},
+
+  {"case": "[타입] depositpaid 숫자 0", 
+  "expectedStatus": 400, 
+  "body": {
+    "depositpaid": 0}},
+
+  {"case": "[타입] bookingdates 문자열", 
+  "expectedStatus": 400, 
+  "body": {
+    "bookingdates": "2026-10-20"}},
+
+  {"case": "[타입] additionalneeds 숫자", 
+  "expectedStatus": 400, 
+  "body": {
+    "additionalneeds": 100}},
+
+  {"case": "[음수] totalprice -1 (경계값)", 
+  "expectedStatus": 400, 
+  "body": {
+    "totalprice": -1}},
+
+  {"case": "[음수] totalprice -990", 
+  "expectedStatus": 400, 
+  "body": {
+    "totalprice": -990}},
+
+  {"case": "[날짜] 역전 - 둘 다 보냄", 
+  "expectedStatus": 400, 
+  "body": {
+    "bookingdates": {
+        "checkin": "2026-11-20", 
+        "checkout": "2026-11-01"}}},
+
+  {"case": "[날짜] 역전 - checkout만 보내 기존 checkin보다 이전", 
+  "expectedStatus": 400, 
+  "body": {
+    "bookingdates": {
+        "checkout": "2017-12-31"}}},
+
+  {"case": "[날짜] 형식 오류 - 구분자 없음", 
+  "expectedStatus": 400, 
+  "body": {
+    "bookingdates": {
+        "checkin": "20180101", 
+        "checkout": "2019-01-01"}}},
+
+  {"case": "[날짜] 형식 오류 - 실사용 형식", 
+  "expectedStatus": 400, 
+  "body": {
+    "bookingdates": {
+        "checkin": "26th Oct 2026", 
+        "checkout": "2026-11-01"}}},
+
+  {"case": "[날짜] 없는 날짜 - 13월", 
+  "expectedStatus": 400, 
+  "body": {
+    "bookingdates": {
+    "checkin": "2026-13-01", 
+    "checkout": "2026-12-01"}}},
+
+  {"case": "[날짜] 없는 날짜 - 2월 30일", 
+  "expectedStatus": 400, 
+  "body": {
+    "bookingdates": {
+    "checkin": "2026-02-30", 
+    "checkout": "2026-03-05"}}},
+
+  {"case": "[날짜] 빈 문자열", 
+  "expectedStatus": 400, 
+  "body": {
+    "bookingdates": {
+    "checkin": "", 
+    "checkout": "2019-01-01"}}},
+
+  {"case": "[추가] bookingdates 중 checkin만 수정", 
+  "expectedStatus": 200, 
+  "body": {
+    "bookingdates": {
+        "checkin": "2018-06-01"}}},
+
+  {"case": "[추가] 빈 body", 
+  "expectedStatus": 400, 
+  "body": {}},
+
+  {"case": "[추가] null 값", 
+  "expectedStatus": 400, 
+  "body": {
+    "firstname": null}},
+
+  {"case": "[추가] 빈 문자열 이름 (정책)", 
+
+  "expectedStatus": 400, 
+  "body": {
+    "firstname": ""}},
+  {"case": "[추가] 필드명 대문자만", 
+
+  "expectedStatus": 400, 
+  "body": {
+    "Firstname": "Kim", "TotalPrice": 990}},
+
+  {"case": "[추가] 정의되지 않은 필드만", 
+  "expectedStatus": 400, 
+  "body": {
+    "discount": 50}}
+]
