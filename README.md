@@ -37,11 +37,13 @@ api-test-restful-booker/
  │   └─ dependabot.yml                           # 의존성 업데이트 설정
  ├─ collections/
  │   └─ Restful-booker.postman_collection.json   # 요청과 테스트 스크립트
- ├─ data/
+ ├─ data/                                        # 케이스 원본 (id, case, purpose, expectedStatus, body)
  │   ├─ booking-cases.json                       # POST 데이터 기반 테스트 입력값 (9행)
  │   └─ patch-cases.json                         # PATCH 데이터 기반 테스트 입력값 (33행)
  ├─ env/
  │   └─ restful-booker.postman_environment.json  # baseUrl, token, bookingid
+ ├─ docs/
+ │   └─ Restful-booker_API_테스트케이스.xlsx       # 테스트 케이스 문서 (템플릿 + 데이터셋, 현황, 결함목록)
  ├─ reports/                                     # 실행 시 생성되는 HTML 리포트 (Git 제외)
  ├─ package.json
  └─ README.md
@@ -82,7 +84,9 @@ api-test-restful-booker/
 
 ```json
 {
+  "id": "BKG-POST-009",
   "case": "depositpaid 문자열 false값",
+  "purpose": "boolean 필드에 문자열 \"false\"를 보내면 거절되는지 확인",
   "expectedStatus": 400,
   "body": {
     "firstname": "Kim", "lastname": "QA9", "totalprice": 990, "depositpaid": "false",
@@ -94,7 +98,9 @@ api-test-restful-booker/
 
 | 필드 | 역할 |
 | --- | --- |
+| `id` | 케이스 고유 ID (`BKG-POST-nnn`, `BKG-PATCH-nnn`). 테스트 케이스 문서의 ID와 같음 |
 | `case` | 케이스 이름. 테스트 결과에 표시 |
+| `purpose` | 테스트 목적. 테스트 케이스 문서의 "테스트 목적"과 같음 |
 | `expectedStatus` | 기대 상태 코드 (명세 기준) |
 | `body` | 보낼 요청 바디 전체 |
 
@@ -157,6 +163,20 @@ api-test-restful-booker/
 | 음수 | 2 | totalprice `-1`(경계값), `-990` | 400 |
 | 날짜 | 7 | 역전(둘 다 보냄, checkout만 보냄), 형식 오류 2종, 없는 날짜(13월, 2월 30일), 빈 문자열 | 400 |
 | 추가 | 6 | checkin만 수정(200), 빈 body, null, 빈 문자열 이름, 대문자 필드명, 정의되지 않은 필드 | 400 |
+
+## 테스트 케이스 문서
+
+`docs/Restful-booker_API_테스트케이스.xlsx`에 데이터 기반 테스트를 **템플릿 + 데이터셋** 구조로 정리했습니다. 절차는 하나이고 입력만 여러 개라는 데이터 기반 테스트의 구조를 문서에도 그대로 옮긴 것입니다.
+
+| 시트 | 내용 |
+| --- | --- |
+| 현황 | 템플릿별 PASS·FAIL·BLOCK·Not Tested·N/A 집계, 진행률·성공률, 심각도별 결함 현황 (모두 수식) |
+| 템플릿 | 데이터 기반 테스트 1개 = 1행. 공통 사전조건, Method·Endpoint·Headers, 판정 기준, 데이터 파일, Postman 위치, 스크립트 검증 항목, 실행 명령 |
+| 예약생성_데이터 / 부분수정_데이터 | 데이터 파일 1행 = 케이스 1행. 입력 body, 기대 Status·Response·저장값, 실제 결과, 결과, 결함 ID |
+| 결함목록 | 결함 ID, API, 내용, 관련 케이스, 심각도, 상태 |
+
+- **케이스 원본은 데이터 파일**입니다. 문서의 ID·케이스·목적·입력·기대 Status는 데이터 파일과 같아야 합니다.
+- 케이스 추가 순서: 데이터 파일에 행 추가 → 실행 → 문서의 데이터셋 시트에 행 추가 후 결과 기입
 
 ## 실행 방법
 
@@ -292,6 +312,9 @@ data-patch는 요청·스크립트 오류 없이 33행이 모두 실행됩니다
 - [x] smoke / regression 분리 실행
 - [x] Dependabot으로 의존성 업데이트 자동화
 - [ ] 실패 메시지에 테스트 의도 추가 (`pm.expect(값, "설명")`)
+- [x] 테스트 케이스 문서화 (템플릿 + 데이터셋), 데이터 파일에 `id`·`purpose` 추가
+- [ ] 테스트 이름에 케이스 ID 표시 (`[BKG-PATCH-013] ...`)로 리포트와 문서 연결
+- [ ] Newman JSON 리포트(`-r json`)와 데이터 파일로 데이터셋 시트 자동 생성
 - [ ] 로그인 계정 정보를 Environment 변수로 분리
 - [x] 데이터 파일(JSON)로 입력값 케이스를 반복 실행하는 데이터 기반 테스트
 - [ ] 03-Regression 중 데이터 파일과 겹치는 입력값 케이스(Bug-2, 5, 6, 7, 10) 정리
