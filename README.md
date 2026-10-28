@@ -37,14 +37,16 @@ api-test-restful-booker/
  │   └─ dependabot.yml                           # 의존성 업데이트 설정
  ├─ collections/
  │   └─ Restful-booker.postman_collection.json   # 요청과 테스트 스크립트
- ├─ data/                                        # 케이스 원본 (id, case, purpose, expectedStatus, body)
+ ├─ data/                                        # 케이스 원본 (id, case, purpose, expectedStatus, knownIssue, body)
  │   ├─ booking-cases.json                       # POST 데이터 기반 테스트 입력값 (9행)
  │   └─ patch-cases.json                         # PATCH 데이터 기반 테스트 입력값 (33행)
  ├─ env/
- │   └─ restful-booker.postman_environment.json  # baseUrl, token, bookingid
+ │   └─ restful-booker.postman_environment.json  # baseUrl, username, password, token, bookingid
  ├─ docs/
  │   └─ Restful-booker_API_테스트케이스.xlsx       # 테스트 케이스 문서 (템플릿 + 데이터셋, 현황, 결함목록)
- ├─ reports/                                     # 실행 시 생성되는 HTML 리포트 (Git 제외)
+ ├─ scripts/
+ │   └─ check-known-issues.js                    # 실행 결과를 알려진 결함과 비교해 새 실패만 실패로 판정
+ ├─ reports/                                     # 실행 시 생성되는 HTML·JSON 리포트 (Git 제외)
  ├─ package.json
  └─ README.md
 ```
@@ -61,7 +63,7 @@ api-test-restful-booker/
 | 04-CleanUp | 정리와 삭제 검증 | 예약 삭제 → 삭제 후 조회(404) |
 | 05-Regression-Delete | 회귀 테스트 | 이미 삭제된 예약 재삭제. 삭제 이후에 실행되어야 해서 CleanUp 뒤에 위치 |
 | 06-Data-Driven | 데이터 기반 테스트 | `POST /booking` 요청 1개를 `data/booking-cases.json`의 행 수만큼 반복 |
-| 07-Data-Driven-Patch | 데이터 기반 테스트 | 토큰 발급 → 예약 생성 → `PATCH` → 재조회 4개 요청을 `data/patch-cases.json`의 행 수만큼 반복 |
+| 07-Data-Driven-Patch | 데이터 기반 테스트 | 토큰 발급 → 예약 생성 → `PATCH` → 재조회 → 삭제 5개 요청을 `data/patch-cases.json`의 행 수만큼 반복 |
 
 ### 실행 그룹
 
@@ -71,8 +73,8 @@ api-test-restful-booker/
 | --- | --- | --- | --- |
 | smoke | 01-Setup, 02-Flow, 04-CleanUp | 정상 기능 동작 확인 | 파이프라인 실패 (진짜 문제) |
 | regression | 01-Setup, 03-Regression, 04-CleanUp, 05-Regression-Delete | 알려진 결함 추적 | 기록만, 파이프라인은 통과 |
-| data | 06-Data-Driven + `data/booking-cases.json` | 생성 입력값 검증 케이스 반복 | 기록만, 파이프라인은 통과 |
-| data-patch | 07-Data-Driven-Patch + `data/patch-cases.json` | 부분 수정 입력값 검증과 저장 결과 확인 | 기록만, 파이프라인은 통과 |
+| data | 06-Data-Driven + `data/booking-cases.json` | 생성 입력값 검증 케이스 반복 | 새 실패만 파이프라인 실패 (알려진 결함은 기록) |
+| data-patch | 07-Data-Driven-Patch + `data/patch-cases.json` | 부분 수정 입력값 검증과 저장 결과 확인 | 새 실패만 파이프라인 실패 (알려진 결함은 기록) |
 
 ## 데이터 기반 테스트: 예약 생성 (06)
 
@@ -102,6 +104,7 @@ api-test-restful-booker/
 | `case` | 케이스 이름. 테스트 결과에 표시 |
 | `purpose` | 테스트 목적. 테스트 케이스 문서의 "테스트 목적"과 같음 |
 | `expectedStatus` | 기대 상태 코드 (명세 기준) |
+| `knownIssue` | 현재 실패하는 알려진 결함의 ID (예: `Bug-2`, `P-5`). 결함이 없는 행에는 넣지 않음 |
 | `body` | 보낼 요청 바디 전체 |
 
 - CSV가 아닌 **JSON**을 쓰는 이유: 숫자(`990`), 문자열(`"9ㅁ90"`), boolean(`true`), 필드 누락을 타입 그대로 표현하기 위해
@@ -140,6 +143,7 @@ api-test-restful-booker/
 | 2 | `POST /booking` | 고정 body로 예약 생성 → `bookingid`는 Environment, 응답의 `booking`은 원본(`originalBooking`)으로 variables에 저장 |
 | 3 | `PATCH /booking/{{bookingid}}` | 현재 행의 `body`를 `JSON.stringify`해 `{{requestBody}}`로 전송, `expectedStatus`로 판정 |
 | 4 | `GET /booking/{{bookingid}}` | 재조회해 실제 저장값을 기대값과 비교 |
+| 5 | `DELETE /booking/{{bookingid}}` | 행마다 만든 예약을 삭제해 테스트 데이터를 남기지 않음 |
 
 ### 재조회 판정
 
@@ -178,6 +182,27 @@ api-test-restful-booker/
 - **케이스 원본은 데이터 파일**입니다. 문서의 ID·케이스·목적·입력·기대 Status는 데이터 파일과 같아야 합니다.
 - 케이스 추가 순서: 데이터 파일에 행 추가 → 실행 → 문서의 데이터셋 시트에 행 추가 후 결과 기입
 
+## 알려진 결함 관리 (known issue)
+
+데이터 기반 테스트는 기대값을 명세 기준으로 작성하기 때문에, 결함이 고쳐지기 전까지 늘 실패합니다. 그대로 두면 CI가 항상 빨간색이라 **새로 생긴 실패를 알아챌 수 없습니다.** 그래서 실패를 알려진 결함과 새 실패로 나눠 판정합니다.
+
+1. 데이터 파일의 실패 행에 `knownIssue`로 결함 ID를 적습니다. (POST 7행, PATCH 24행)
+2. Newman은 `--suppress-exit-code`로 끝까지 실행하고, 결과를 JSON(`reports/*.json`)으로 저장합니다.
+3. `scripts/check-known-issues.js`가 JSON 리포트와 데이터 파일을 행 단위로 비교해 분류하고, 종료 코드로 최종 판정합니다.
+
+| 분류 | 조건 | 판정 | 할 일 |
+| --- | --- | --- | --- |
+| PASS | 표시 없음, 통과 | 통과 | |
+| KNOWN_FAIL | `knownIssue` 있음, 실패 | 통과 (기록만) | |
+| FIXED? | `knownIssue` 있음, **통과** | 통과 + 경고 | 결함이 수정됐는지 확인하고 `knownIssue` 제거, 결함목록 상태를 Fixed로 변경 |
+| NEW_FAIL | 표시 없음, **실패** | **실패** | 새 결함인지, 테스트 문제인지 확인 |
+| SETUP_FAIL | 판정 대상이 아닌 요청(토큰 발급, 예약 생성, 정리)에서 실패 | **실패** | 환경·준비 단계 확인 |
+| NOT_RUN | 행이 실행되지 않음, 또는 반복 횟수가 행 수와 다름 | **실패** | 폴더·데이터 파일 지정 확인 |
+
+- 07은 `--targets "PATCH,수정 후 재조회"`로 판정 대상을 지정합니다. 예약 생성이 실패해 재조회가 깨진 경우를 결함으로 착각하지 않도록, 준비 단계 실패는 알려진 결함 행이어도 SETUP_FAIL로 처리합니다.
+- 결함이 수정되어 통과하면 테스트는 그대로 둡니다. `knownIssue`만 지우면 그 행은 일반 케이스가 되어, 이후 다시 실패하면 NEW_FAIL로 잡힙니다. 즉 수정된 결함의 회귀 감시는 데이터 행이 맡습니다.
+- CI에서는 분류 결과가 실행 화면의 Summary 표와 경고·오류 표시(annotation)로 나옵니다.
+
 ## 실행 방법
 
 ```bash
@@ -206,10 +231,10 @@ npm run test:api
 | --- | --- |
 | `test:smoke` | `reports/smoke.html` |
 | `test:regression` | `reports/regression.html` |
-| `test:data` | `reports/data.html` |
-| `test:data-patch` | `reports/data-patch.html` |
+| `test:data` | `reports/data.html`, `reports/data.json` |
+| `test:data-patch` | `reports/data-patch.html`, `reports/data-patch.json` |
 
-`test:data`와 `test:data-patch`는 `-d` 옵션으로 데이터 파일의 행 수만큼 반복 실행합니다. Postman 앱의 Runner에서는 데이터 파일 실행이 유료 기능이라, Newman으로 실행합니다.
+`test:data`와 `test:data-patch`는 `-d` 옵션으로 데이터 파일의 행 수만큼 반복 실행한 뒤, 이어서 `check-known-issues.js`로 판정합니다. Postman 앱의 Runner에서는 데이터 파일 실행이 유료 기능이라, Newman으로 실행합니다.
 
 리포트의 Failed Tests 탭에서 실패 상세(기대값 vs 실제값)를, Total Requests 탭의 Console Log에서 스크립트가 남긴 기록(보낸 값과 저장된 값 등)을 확인할 수 있습니다.
 
@@ -221,8 +246,8 @@ npm run test:api
 | --- | --- | --- |
 | smoke | `npm run test:smoke` | 실패하면 워크플로 실패 |
 | regression | `npm run test:regression` | `continue-on-error: true`. 알려진 결함으로 job은 실패로 표시되지만 워크플로는 통과 |
-| data | `npm run test:data` | `continue-on-error: true` |
-| data-patch | `npm run test:data-patch` | `continue-on-error: true` |
+| data | `npm run test:data` | 새 실패·준비 실패가 있으면 워크플로 실패. 알려진 결함은 Summary에 기록 |
+| data-patch | `npm run test:data-patch` | 위와 같음 |
 
 - 모든 job이 `if: always()`로 테스트가 실패해도 리포트를 Artifacts(`smoke-report`, `regression-report`, `data-report`, `data-patch-report`)로 업로드합니다.
 - `npm ci`와 `package-lock.json`으로 로컬과 CI가 같은 버전으로 실행되며, `setup-node`의 `cache: npm`으로 설치 시간을 줄입니다.
@@ -232,10 +257,10 @@ npm run test:api
 
 | 그룹 | requests | assertions | 실패 | 결과 |
 | --- | --- | --- | --- | --- |
-| smoke | 7 | 9 | 0 | 모두 통과 |
+| smoke | 7 | 10 | 0 | 모두 통과 |
 | regression | 15 | 16 | 11 | 알려진 결함 11건 |
 | data | 9 (iterations 9) | 9 | 7 | 정상 2건 통과, 결함 7건 |
-| data-patch | 132 (iterations 33) | 165 | 42 | 아래 참고 |
+| data-patch | 165 (iterations 33) | 198 | 42 | 아래 참고 |
 
 regression의 실패 11건은 모두 **알려진 결함에 대한 회귀 테스트**입니다(03-Regression 10건 + 재삭제 1건). 통과하는 5건은 Setup의 토큰 발급과 예약 생성, `[Bug-1] 로그인 실패 시 토큰 없음`, CleanUp의 삭제와 삭제 후 조회입니다.
 결함이 수정되면 해당 테스트가 PASS로 바뀌고, 다시 FAIL이 되면 결함이 재발한 것으로 판단합니다.
@@ -311,15 +336,18 @@ data-patch는 요청·스크립트 오류 없이 33행이 모두 실행됩니다
 - [x] GitHub Actions로 push 시 자동 실행 및 리포트 보관
 - [x] smoke / regression 분리 실행
 - [x] Dependabot으로 의존성 업데이트 자동화
-- [ ] 실패 메시지에 테스트 의도 추가 (`pm.expect(값, "설명")`)
+- [x] 실패 메시지에 테스트 의도 추가 (`pm.expect(값, "설명")`, 데이터 기반 테스트)
 - [x] 테스트 케이스 문서화 (템플릿 + 데이터셋), 데이터 파일에 `id`·`purpose` 추가
-- [ ] 테스트 이름에 케이스 ID 표시 (`[BKG-PATCH-013] ...`)로 리포트와 문서 연결
+- [x] 테스트 이름에 케이스 ID 표시 (`[BKG-PATCH-013] ...`)로 리포트와 문서 연결
+- [x] 알려진 결함(`knownIssue`)과 새 실패를 구분해 data·data-patch job의 `continue-on-error` 제거
+- [ ] regression(03)에도 같은 방식 적용, 03과 데이터 케이스 중복 정리
 - [ ] Newman JSON 리포트(`-r json`)와 데이터 파일로 데이터셋 시트 자동 생성
-- [ ] 로그인 계정 정보를 Environment 변수로 분리
+- [x] 로그인 계정 정보를 Environment 변수(`username`, `password`)로 분리
 - [x] 데이터 파일(JSON)로 입력값 케이스를 반복 실행하는 데이터 기반 테스트
 - [ ] 03-Regression 중 데이터 파일과 겹치는 입력값 케이스(Bug-2, 5, 6, 7, 10) 정리
 - [ ] depositpaid 빈 문자열(`""`) 케이스로 boolean 변환 규칙 확정
 - [x] PATCH 부분 수정 데이터 기반 테스트 (재조회로 저장 결과 비교)
 - [ ] 07 폴더 예약 생성 body의 depositpaid를 `false`로 바꿔, 문자열 값이 무시되는지 변환되는지 구분 (현재 원본이 `true`라 두 경우의 결과가 같음)
-- [ ] 07 폴더에 행마다 생성한 예약을 삭제하는 정리 요청 추가
-- [ ] 02-Flow 예약 변경 요청에 상태 코드 검증 추가
+- [x] 07 폴더에 행마다 생성한 예약을 삭제하는 정리 요청 추가
+- [x] 02-Flow 예약 변경 요청에 상태 코드 검증 추가
+- [x] 명세에 없는 요청 헤더 정리 (`bookingid` 헤더, GET의 `Content-Type`·`Cookie`, 예약 생성의 `Cookie`)

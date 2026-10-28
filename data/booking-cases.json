@@ -18,6 +18,7 @@
     "case": "가격 음수",
     "purpose": "음수 가격으로는 예약 생성이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "Bug-2",
     "body": {"firstname": "Kim", "lastname": "QA3", "totalprice": -990, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   },
   {
@@ -25,6 +26,7 @@
     "case": "가격에 문자열 포함",
     "purpose": "숫자와 문자가 섞인 가격으로는 예약 생성이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "Bug-10",
     "body": {"firstname": "Kim", "lastname": "QA4", "totalprice": "9ㅁ90", "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   },
   {
@@ -32,6 +34,7 @@
     "case": "first name 누락",
     "purpose": "필수값 firstname이 없으면 400으로 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "Bug-5",
     "body": {"lastname": "QA5", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   },
   {
@@ -39,6 +42,7 @@
     "case": "체크인*아웃 날짜 역전",
     "purpose": "체크아웃이 체크인보다 이전이면 예약 생성이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "Bug-6",
     "body": {"firstname": "Kim", "lastname": "QA6", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-11-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   },
   {
@@ -46,6 +50,7 @@
     "case": "체크인 형식 오류",
     "purpose": "날짜가 아닌 형식의 체크인으로는 예약 생성이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "Bug-7",
     "body": {"firstname": "Kim", "lastname": "QA7", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "26th Oct 2026", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   },
   {
@@ -53,6 +58,7 @@
     "case": "depositpaid 문자열",
     "purpose": "boolean 필드에 문자열 \"true\"를 보내면 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "D-1",
     "body": {"firstname": "Kim", "lastname": "QA8", "totalprice": 990, "depositpaid": "true", "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   },
   {
@@ -60,6 +66,7 @@
     "case": "depositpaid 문자열 false값",
     "purpose": "boolean 필드에 문자열 \"false\"를 보내면 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "D-2",
     "body": {"firstname": "Kim", "lastname": "QA9", "totalprice": 990, "depositpaid": "false", "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   }
 ]

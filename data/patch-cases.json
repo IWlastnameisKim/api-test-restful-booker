@@ -67,6 +67,7 @@
     "case": "[타입] firstname 숫자",
     "purpose": "문자열 필드 firstname에 숫자를 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-3",
     "body": {"firstname": 123}
   },
   {
@@ -74,6 +75,7 @@
     "case": "[타입] lastname boolean",
     "purpose": "문자열 필드 lastname에 boolean을 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-3",
     "body": {"lastname": true}
   },
   {
@@ -81,6 +83,7 @@
     "case": "[타입] totalprice 숫자 문자열",
     "purpose": "숫자 필드 totalprice에 숫자 문자열을 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-4",
     "body": {"totalprice": "990"}
   },
   {
@@ -88,6 +91,7 @@
     "case": "[타입] totalprice 문자 섞임",
     "purpose": "totalprice에 숫자와 문자가 섞인 값을 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-5",
     "body": {"totalprice": "9ㅁ90"}
   },
   {
@@ -95,6 +99,7 @@
     "case": "[타입] depositpaid 문자열 true",
     "purpose": "boolean 필드에 문자열 \"true\"를 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-13",
     "body": {"depositpaid": "true"}
   },
   {
@@ -102,6 +107,7 @@
     "case": "[타입] depositpaid 문자열 false",
     "purpose": "boolean 필드에 문자열 \"false\"를 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-13",
     "body": {"depositpaid": "false"}
   },
   {
@@ -109,6 +115,7 @@
     "case": "[타입] depositpaid 숫자 0",
     "purpose": "boolean 필드에 숫자 0을 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-7",
     "body": {"depositpaid": 0}
   },
   {
@@ -116,6 +123,7 @@
     "case": "[타입] bookingdates 문자열",
     "purpose": "객체 필드 bookingdates에 문자열을 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-9",
     "body": {"bookingdates": "2026-10-20"}
   },
   {
@@ -123,6 +131,7 @@
     "case": "[타입] additionalneeds 숫자",
     "purpose": "문자열 필드 additionalneeds에 숫자를 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-3",
     "body": {"additionalneeds": 100}
   },
   {
@@ -130,6 +139,7 @@
     "case": "[음수] totalprice -1 (경계값)",
     "purpose": "음수 경계값 -1로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-6",
     "body": {"totalprice": -1}
   },
   {
@@ -137,6 +147,7 @@
     "case": "[음수] totalprice -990",
     "purpose": "음수 가격으로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-6",
     "body": {"totalprice": -990}
   },
   {
@@ -144,6 +155,7 @@
     "case": "[날짜] 역전 - 둘 다 보냄",
     "purpose": "체크아웃이 체크인보다 이전이 되도록 두 날짜를 보내면 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-8",
     "body": {"bookingdates": {"checkin": "2026-11-20", "checkout": "2026-11-01"}}
   },
   {
@@ -151,6 +163,7 @@
     "case": "[날짜] 역전 - checkout만 보내 기존 checkin보다 이전",
     "purpose": "checkout만 기존 checkin(2018-01-01)보다 이전으로 보내면 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-2",
     "body": {"bookingdates": {"checkout": "2017-12-31"}}
   },
   {
@@ -158,6 +171,7 @@
     "case": "[날짜] 형식 오류 - 구분자 없음",
     "purpose": "구분자 없는 날짜(20180101)로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-9",
     "body": {"bookingdates": {"checkin": "20180101", "checkout": "2019-01-01"}}
   },
   {
@@ -165,6 +179,7 @@
     "case": "[날짜] 형식 오류 - 실사용 형식",
     "purpose": "\"26th Oct 2026\" 형식으로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-9",
     "body": {"bookingdates": {"checkin": "26th Oct 2026", "checkout": "2026-11-01"}}
   },
   {
@@ -172,6 +187,7 @@
     "case": "[날짜] 없는 날짜 - 13월",
     "purpose": "존재하지 않는 월(13월)로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-9",
     "body": {"bookingdates": {"checkin": "2026-13-01", "checkout": "2026-12-01"}}
   },
   {
@@ -179,6 +195,7 @@
     "case": "[날짜] 없는 날짜 - 2월 30일",
     "purpose": "존재하지 않는 날짜(2월 30일)로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-10",
     "body": {"bookingdates": {"checkin": "2026-02-30", "checkout": "2026-03-05"}}
   },
   {
@@ -186,6 +203,7 @@
     "case": "[날짜] 빈 문자열",
     "purpose": "빈 문자열 날짜로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-9",
     "body": {"bookingdates": {"checkin": "", "checkout": "2019-01-01"}}
   },
   {
@@ -193,6 +211,7 @@
     "case": "[추가] bookingdates 중 checkin만 수정",
     "purpose": "bookingdates에 checkin만 보내면 checkin만 바뀌고 checkout은 유지되는지 확인",
     "expectedStatus": 200,
+    "knownIssue": "P-1",
     "body": {"bookingdates": {"checkin": "2018-06-01"}}
   },
   {
@@ -200,6 +219,7 @@
     "case": "[추가] 빈 body",
     "purpose": "수정할 필드가 없는 빈 body는 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-14",
     "body": {}
   },
   {
@@ -207,6 +227,7 @@
     "case": "[추가] null 값",
     "purpose": "firstname에 null을 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-11",
     "body": {"firstname": null}
   },
   {
@@ -214,6 +235,7 @@
     "case": "[추가] 빈 문자열 이름 (정책)",
     "purpose": "firstname에 빈 문자열을 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-12",
     "body": {"firstname": ""}
   },
   {
@@ -221,6 +243,7 @@
     "case": "[추가] 필드명 대문자만",
     "purpose": "명세에 없는 대소문자 필드명(Firstname, TotalPrice)은 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-14",
     "body": {"Firstname": "Kim", "TotalPrice": 990}
   },
   {
@@ -228,6 +251,7 @@
     "case": "[추가] 정의되지 않은 필드만",
     "purpose": "명세에 없는 필드(discount)만 보내면 거절되는지 확인",
     "expectedStatus": 400,
+    "knownIssue": "P-14",
     "body": {"discount": 50}
   }
 ]

@@ -59,7 +59,6 @@ jobs:
 
   data:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: 코드 가져오기
         uses: actions/checkout@v7
@@ -81,11 +80,12 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: data-report
-          path: reports/data.html
+          path: |
+            reports/data.html
+            reports/data.json
 
   data-patch:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: 코드 가져오기
         uses: actions/checkout@v7
@@ -107,4 +107,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: data-patch-report
-          path: reports/data-patch.html
+          path: |
+            reports/data-patch.html
+            reports/data-patch.json
