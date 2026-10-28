@@ -27,7 +27,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n\"username\" : \"admin\",\n\"password\" : \"password123\"\n}",
+              "raw": "{\n\"username\" : \"{{username}}\",\n\"password\" : \"{{password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -47,7 +47,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/booking - 예약생성",
+          "name": "예약 생성",
           "event": [
             {
               "listen": "test",
@@ -65,10 +65,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
               }
             ],
             "body": {
@@ -98,14 +94,14 @@
       "name": "02-Flow",
       "item": [
         {
-          "name": "{{baseUrl}}/booking/{{bookingid}} - 예약조회",
+          "name": "예약 조회",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const booking=pm.response.json();\nconsole.log(booking.bookingdates.checkin)\n\npm.test(\"상태코드는 200\", () => {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"totalprice 숫자형 여부\", () => {\n    pm.expect(typeof booking.totalprice).to.eql(\"number\");\n});\n\n\npm.test(\"depositpaid는 boolean\", () => {\n    pm.expect(typeof booking.depositpaid).to.eql(\"boolean\");\n});\n\npm.test(\"checkout은 checkin보다 이후\",() =>{\n    pm.expect(booking.bookingdates.checkin < booking.bookingdates.checkout).to.eql(true);\n});"
+                  "const booking=pm.response.json();\n\npm.test(\"상태코드는 200\", () => {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"totalprice 숫자형 여부\", () => {\n    pm.expect(typeof booking.totalprice).to.eql(\"number\");\n});\n\n\npm.test(\"depositpaid는 boolean\", () => {\n    pm.expect(typeof booking.depositpaid).to.eql(\"boolean\");\n});\n\npm.test(\"checkout은 checkin보다 이후\",() =>{\n    pm.expect(booking.bookingdates.checkin < booking.bookingdates.checkout).to.eql(true);\n});"
                 ]
               }
             }
@@ -114,12 +110,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
@@ -145,14 +138,14 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/booking/{{bookingid}} - 예약 변경",
+          "name": "예약 변경",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  ""
+                  "pm.test(\"[Flow] 예약 변경 성공\", () => {\n    pm.response.to.have.status(200);\n});\n\nif (pm.response.code !== 200) {\n    console.log(\"[Flow] 예약 변경 실패\", pm.response.code, pm.response.text());\n}"
                 ]
               }
             }
@@ -163,10 +156,6 @@
               {
                 "key": "Cookie",
                 "value": "token={{token}}"
-              },
-              {
-                "key": "bookingid",
-                "value": "{{bookingid}}"
               },
               {
                 "key": "Accept",
@@ -196,7 +185,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/booking/{{bookingid}} - 예약재조회",
+          "name": "예약 재조회",
           "event": [
             {
               "listen": "test",
@@ -212,12 +201,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
@@ -255,7 +241,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"[Bug1] 로그인 실패 시 401\", () => {\n    pm.response.to.have.status(401);\n});\n\npm.test(\"[Bug-1] 로그인 실패 시 토큰 없음\", () => { \n    pm.expect(pm.response.json()).to.not.have.property(\"token\");\n}); \n"
+                  "pm.test(\"[Bug-1] 로그인 실패 시 401\", () => {\n    pm.response.to.have.status(401);\n});\n\npm.test(\"[Bug-1] 로그인 실패 시 토큰 없음\", () => { \n    pm.expect(pm.response.json()).to.not.have.property(\"token\");\n}); \n"
                 ]
               }
             }
@@ -265,7 +251,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n\"username\" : \"admin\",\n\"password\" : \"password124\"\n}",
+              "raw": "{\n\"username\" : \"{{username}}\",\n\"password\" : \"password124\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -347,10 +333,6 @@
                 "value": "token={{token}}"
               },
               {
-                "key": "bookingid",
-                "value": "{{bookingid}}"
-              },
-              {
                 "key": "Accept",
                 "value": "application/json"
               }
@@ -385,7 +367,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"[Bug-3] 토큰 없이 수정 시 401 에러 처리\", () => {\n    pm.response.to.have.status(401);\n});"
+                  "pm.test(\"[Bug-4] 토큰 없이 수정 시 401 에러 처리\", () => {\n    pm.response.to.have.status(401);\n});"
                 ]
               }
             }
@@ -397,10 +379,6 @@
                 "key": "Cookie",
                 "value": "token={{token}}",
                 "disabled": true
-              },
-              {
-                "key": "bookingid",
-                "value": "{{bookingid}}"
               },
               {
                 "key": "Accept",
@@ -448,10 +426,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
               }
             ],
             "body": {
@@ -483,7 +457,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"[BUG-6] 체크아웃이 체크인보다 이전이면 400\", () => {\n  pm.expect(pm.response.code).to.eql(400);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n  console.log(\n    \"체크인/아웃 날짜 역전 발생\",\n    \"check-in: \" + body.booking.bookingdates.checkin,\n    \"check-out: \" + body.booking.bookingdates.checkout\n  );\n}"
+                  "pm.test(\"[Bug-6] 체크아웃이 체크인보다 이전이면 400\", () => {\n  pm.expect(pm.response.code).to.eql(400);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n  console.log(\n    \"체크인/아웃 날짜 역전 발생\",\n    \"check-in: \" + body.booking.bookingdates.checkin,\n    \"check-out: \" + body.booking.bookingdates.checkout\n  );\n}"
                 ]
               }
             }
@@ -494,10 +468,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
               }
             ],
             "body": {
@@ -529,7 +499,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"[Bug-7] 체크인 날짜 문자열 400 에러 처리\",() => {\n    pm.expect(pm.response.code).to.eql(400);\n});\n\nif (pm.response.code !== 400) {\n    console.log(\"[Bug-7]400에처 처리가 아님\", \"statusCode:\"+pm.response.code, pm.response.text());\n};\n\nif (pm.response.code === 200) {\n  const sent = JSON.parse(pm.request.body.raw);\n  const body = pm.response.json()\n  console.log(`[BUG-10] 보낸 checkin: ${sent.bookingdates.checkin} / 저장된 checkin: ${body.booking.bookingdates.checkin}`);\n  }"
+                  "pm.test(\"[Bug-7] 체크인 날짜 문자열 400 에러 처리\",() => {\n    pm.expect(pm.response.code).to.eql(400);\n});\n\nif (pm.response.code !== 400) {\n    console.log(\"[Bug-7] 400 에러 처리가 아님\", \"statusCode:\"+pm.response.code, pm.response.text());\n};\n\nif (pm.response.code === 200) {\n  const sent = JSON.parse(pm.request.body.raw);\n  const body = pm.response.json()\n  console.log(`[Bug-7] 보낸 checkin: ${sent.bookingdates.checkin} / 저장된 checkin: ${body.booking.bookingdates.checkin}`);\n  }"
                 ]
               }
             }
@@ -540,10 +510,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
               }
             ],
             "body": {
@@ -584,12 +550,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
@@ -636,12 +599,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
@@ -690,10 +650,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
               }
             ],
             "body": {
@@ -723,7 +679,7 @@
       "name": "04-CleanUp",
       "item": [
         {
-          "name": "예약삭제",
+          "name": "예약 삭제",
           "event": [
             {
               "listen": "test",
@@ -775,7 +731,13 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingid}}",
               "host": [
@@ -854,7 +816,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const caseName = pm.iterationData.get(\"case\")\nconst expected = pm.iterationData.get(\"expectedStatus\")\n\npm.test(`[Data]${caseName}-> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code).to.eql(expected);\n});\n\nif (pm.response.code !== expected){\n    console.log(`[Data]${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}"
+                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\")\n\npm.test(`[Data]${caseName}-> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code, `기대 ${expected}, 실제 ${pm.response.code}`).to.eql(expected);\n});\n\nif (pm.response.code !== expected){\n    console.log(`[Data]${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}"
                 ]
               }
             }
@@ -865,11 +827,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}",
-                "disabled": true
               }
             ],
             "body": {
@@ -909,6 +866,15 @@
                   "const body = pm.response.json();\n\npm.test(\"인증토큰발급\", () => {\n  pm.response.to.have.status(200);\n  pm.expect(typeof body.token).to.eql(\"string\");\n});\n\nif (pm.response.code === 200 && typeof body.token === \"string\") {\n  pm.environment.set(\"token\", body.token);\n} else {\n  console.log(\"토큰발급 실패하여 기존 토큰 유지\", body);\n}"
                 ]
               }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  ""
+                ]
+              }
             }
           ],
           "request": {
@@ -916,7 +882,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n\"username\" : \"admin\",\n\"password\" : \"password123\"\n}",
+              "raw": "{\n\"username\" : \"{{username}}\",\n\"password\" : \"{{password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -952,7 +918,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const caseName = pm.iterationData.get(\"case\");\n\npm.test(`[Patch-준비] ${caseName}: 예약 생성`, () => {\n  pm.expect(pm.response.code).to.eql(200);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n\n  if (typeof body.bookingid === \"number\") {\n    pm.environment.set(\"bookingid\", body.bookingid);\n    pm.variables.set(\"originalBooking\", JSON.stringify(body.booking));\n  } else {\n    console.log(`[Patch-준비] ${caseName} - bookingid 없음`, body);\n  }\n} else {\n  console.log(`[Patch-준비] ${caseName} - 예약 생성 실패`, pm.response.code, pm.response.text());\n}"
+                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\n\npm.test(`[Patch-준비] ${caseName}: 예약 생성`, () => {\n  pm.expect(pm.response.code).to.eql(200);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n\n  if (typeof body.bookingid === \"number\") {\n    pm.environment.set(\"bookingid\", body.bookingid);\n    pm.variables.set(\"originalBooking\", JSON.stringify(body.booking));\n  } else {\n    console.log(`[Patch-준비] ${caseName} - bookingid 없음`, body);\n  }\n} else {\n  console.log(`[Patch-준비] ${caseName} - 예약 생성 실패`, pm.response.code, pm.response.text());\n}"
                 ]
               }
             }
@@ -963,11 +929,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "token={{token}}",
-                "disabled": true
               }
             ],
             "body": {
@@ -1008,7 +969,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const caseName = pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\n\npm.test(`[Patch] ${caseName} -> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code, `기대 ${expected}, 실제 ${pm.response.code}`).to.eql(expected);\n});\n\n\nif (pm.response.code !== expected) {\n    console.log(`[Patch] ${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}"
+                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\n\npm.test(`[Patch] ${caseName} -> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code, `기대 ${expected}, 실제 ${pm.response.code}`).to.eql(expected);\n});\n\n\nif (pm.response.code !== expected) {\n    console.log(`[Patch] ${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}"
                 ]
               }
             }
@@ -1055,7 +1016,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const caseName = pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\nconst originalText = pm.variables.get(\"originalBooking\");\n\npm.test(`[Patch-재조회] ${caseName}: 예약 조회`, () => {\n    pm.expect(pm.response.code).to.eql(200);\n    pm.expect(originalText, \"원본 없음: 예약 생성 단계 실패\").to.exist;\n});\n\nif (pm.response.code === 200 && originalText) {\n    const original = JSON.parse(originalText);\n    const sent = JSON.parse(pm.variables.get(\"requestBody\"));\n    const saved = pm.response.json();\n\n    if (expected === 200) {\n        const expectedBooking = {\n            ...original,\n            ...sent,\n            bookingdates: { ...original.bookingdates, ...(sent.bookingdates || {}) }\n        };\n\n        pm.test(`[Patch-재조회] ${caseName}: 보낸 필드만 바뀌고 나머지는 유지`, () => {\n            pm.expect(saved).to.eql(expectedBooking);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(expectedBooking)) {\n            console.log(`[Patch-재조회] ${caseName}`);\n            console.log(\"기대:\", JSON.stringify(expectedBooking));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    } else {\n        pm.test(`[Patch-재조회] ${caseName}: 거절된 요청이라 원본 유지`, () => {\n            pm.expect(saved).to.eql(original);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(original)) {\n            console.log(`[Patch-재조회] ${caseName}: 거절돼야 할 요청인데 값이 바뀜`);\n            console.log(\"원본:\", JSON.stringify(original));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    }\n}"
+                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\nconst originalText = pm.variables.get(\"originalBooking\");\n\npm.test(`[Patch-재조회] ${caseName}: 예약 조회`, () => {\n    pm.expect(pm.response.code).to.eql(200);\n    pm.expect(originalText, \"원본 없음: 예약 생성 단계 실패\").to.exist;\n});\n\nif (pm.response.code === 200 && originalText) {\n    const original = JSON.parse(originalText);\n    const sent = JSON.parse(pm.variables.get(\"requestBody\"));\n    const saved = pm.response.json();\n\n    if (expected === 200) {\n        const expectedBooking = {\n            ...original,\n            ...sent,\n            bookingdates: { ...original.bookingdates, ...(sent.bookingdates || {}) }\n        };\n\n        pm.test(`[Patch-재조회] ${caseName}: 보낸 필드만 바뀌고 나머지는 유지`, () => {\n            pm.expect(saved, \"저장값이 원본+보낸 필드와 다름\").to.eql(expectedBooking);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(expectedBooking)) {\n            console.log(`[Patch-재조회] ${caseName}`);\n            console.log(\"기대:\", JSON.stringify(expectedBooking));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    } else {\n        pm.test(`[Patch-재조회] ${caseName}: 거절된 요청이라 원본 유지`, () => {\n            pm.expect(saved, \"거절돼야 할 요청인데 저장값이 바뀜\").to.eql(original);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(original)) {\n            console.log(`[Patch-재조회] ${caseName}: 거절돼야 할 요청인데 값이 바뀜`);\n            console.log(\"원본:\", JSON.stringify(original));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    }\n}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  ""
                 ]
               }
             }
@@ -1077,6 +1047,46 @@
                 }
               }
             },
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingid}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingid}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "예약 삭제 (정리)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\n\npm.test(`[Patch-정리] ${caseName}: 예약 삭제`, () => {\n    pm.expect(pm.response.code, `실제 ${pm.response.code}`).to.be.oneOf([200, 201, 204]);\n});\n\nif (![200, 201, 204].includes(pm.response.code)) {\n    console.log(`[Patch-정리] ${caseName}: 삭제 실패`, pm.response.code, pm.response.text());\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingid}}",
               "host": [
