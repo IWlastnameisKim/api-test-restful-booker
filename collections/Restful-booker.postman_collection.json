@@ -17,7 +17,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const body = pm.response.json();\n\npm.test(\"인증토큰발급\", () => {\n  pm.response.to.have.status(200);\n  pm.expect(typeof body.token).to.eql(\"string\");\n});\n\nif (pm.response.code === 200 && typeof body.token === \"string\") {\n  pm.environment.set(\"token\", body.token);\n} else {\n  console.log(\"토큰발급 실패하여 기존 토큰 유지\", body);\n}"
+                  "const body = pm.response.json();\n\npm.test(\"인증토큰발급\", () => {\n  pm.response.to.have.status(200);\n  pm.expect(typeof body.token).to.eql(\"string\");\n});\n\nif (pm.response.code === 200 && typeof body.token === \"string\") {\n  pm.environment.set(\"token\", body.token);\n} else {\n  console.log(\"토큰발급 실패하여 기존 토큰 유지\", body);\n}\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(\"[Schema] 토큰 발급 응답 구조\", () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.auth\")));\n    });\n}"
                 ]
               }
             }
@@ -54,7 +54,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"[Setup] 예약 생성\", () => {\n  pm.expect(pm.response.code).to.eql(200);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n\n  if (typeof body.bookingid === \"number\") {\n    pm.environment.set(\"bookingid\", body.bookingid);\n  } else {\n    console.log(\"[Setup] 예약 생성 - bookingid 없음\", body);\n  }\n} else {\n  console.log(\"[Setup] 예약 생성 실패\", pm.response.code, pm.response.text());\n}"
+                  "pm.test(\"[Setup] 예약 생성\", () => {\n  pm.expect(pm.response.code).to.eql(200);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n\n  if (typeof body.bookingid === \"number\") {\n    pm.environment.set(\"bookingid\", body.bookingid);\n  } else {\n    console.log(\"[Setup] 예약 생성 - bookingid 없음\", body);\n  }\n} else {\n  console.log(\"[Setup] 예약 생성 실패\", pm.response.code, pm.response.text());\n}\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(\"[Schema] 예약 생성 응답 구조\", () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.bookingCreated\")));\n    });\n}"
                 ]
               }
             }
@@ -101,7 +101,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const booking=pm.response.json();\n\npm.test(\"상태코드는 200\", () => {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"totalprice 숫자형 여부\", () => {\n    pm.expect(typeof booking.totalprice).to.eql(\"number\");\n});\n\n\npm.test(\"depositpaid는 boolean\", () => {\n    pm.expect(typeof booking.depositpaid).to.eql(\"boolean\");\n});\n\npm.test(\"checkout은 checkin보다 이후\",() =>{\n    pm.expect(booking.bookingdates.checkin < booking.bookingdates.checkout).to.eql(true);\n});"
+                  "const booking=pm.response.json();\n\npm.test(\"상태코드는 200\", () => {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"totalprice 숫자형 여부\", () => {\n    pm.expect(typeof booking.totalprice).to.eql(\"number\");\n});\n\n\npm.test(\"depositpaid는 boolean\", () => {\n    pm.expect(typeof booking.depositpaid).to.eql(\"boolean\");\n});\n\npm.test(\"checkout은 checkin보다 이후\",() =>{\n    pm.expect(booking.bookingdates.checkin < booking.bookingdates.checkout).to.eql(true);\n});\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(\"[Schema] 예약 조회 응답 구조\", () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.booking\")));\n    });\n}"
                 ]
               }
             }
@@ -145,7 +145,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"[Flow] 예약 변경 성공\", () => {\n    pm.response.to.have.status(200);\n});\n\nif (pm.response.code !== 200) {\n    console.log(\"[Flow] 예약 변경 실패\", pm.response.code, pm.response.text());\n}"
+                  "pm.test(\"[Flow] 예약 변경 성공\", () => {\n    pm.response.to.have.status(200);\n});\n\nif (pm.response.code !== 200) {\n    console.log(\"[Flow] 예약 변경 실패\", pm.response.code, pm.response.text());\n}\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(\"[Schema] 예약 변경 응답 구조\", () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.booking\")));\n    });\n}"
                 ]
               }
             }
@@ -192,7 +192,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const booking=pm.response.json();\npm.test(\"예약 변경 내용이 반영됨\", () => {\n  pm.expect(booking.firstname).to.eql(\"kim\");\n  pm.expect(booking.totalprice).to.eql(99930);\n});"
+                  "const booking=pm.response.json();\npm.test(\"예약 변경 내용이 반영됨\", () => {\n  pm.expect(booking.firstname).to.eql(\"kim\");\n  pm.expect(booking.totalprice).to.eql(99930);\n});\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(\"[Schema] 예약 재조회 응답 구조\", () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.booking\")));\n    });\n}"
                 ]
               }
             }
@@ -816,7 +816,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\")\n\npm.test(`[Data]${caseName}-> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code, `기대 ${expected}, 실제 ${pm.response.code}`).to.eql(expected);\n});\n\nif (pm.response.code !== expected){\n    console.log(`[Data]${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}"
+                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\")\n\npm.test(`[Data]${caseName}-> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code, `기대 ${expected}, 실제 ${pm.response.code}`).to.eql(expected);\n});\n\nif (pm.response.code !== expected){\n    console.log(`[Data]${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(`[Schema] ${caseName}: 생성 응답 구조`, () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.bookingCreated\")));\n    });\n}"
                 ]
               }
             }
@@ -863,7 +863,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const body = pm.response.json();\n\npm.test(\"인증토큰발급\", () => {\n  pm.response.to.have.status(200);\n  pm.expect(typeof body.token).to.eql(\"string\");\n});\n\nif (pm.response.code === 200 && typeof body.token === \"string\") {\n  pm.environment.set(\"token\", body.token);\n} else {\n  console.log(\"토큰발급 실패하여 기존 토큰 유지\", body);\n}"
+                  "const body = pm.response.json();\n\npm.test(\"인증토큰발급\", () => {\n  pm.response.to.have.status(200);\n  pm.expect(typeof body.token).to.eql(\"string\");\n});\n\nif (pm.response.code === 200 && typeof body.token === \"string\") {\n  pm.environment.set(\"token\", body.token);\n} else {\n  console.log(\"토큰발급 실패하여 기존 토큰 유지\", body);\n}\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(\"[Schema] 토큰 발급 응답 구조\", () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.auth\")));\n    });\n}"
                 ]
               }
             },
@@ -918,7 +918,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\n\npm.test(`[Patch-준비] ${caseName}: 예약 생성`, () => {\n  pm.expect(pm.response.code).to.eql(200);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n\n  if (typeof body.bookingid === \"number\") {\n    pm.environment.set(\"bookingid\", body.bookingid);\n    pm.variables.set(\"originalBooking\", JSON.stringify(body.booking));\n  } else {\n    console.log(`[Patch-준비] ${caseName} - bookingid 없음`, body);\n  }\n} else {\n  console.log(`[Patch-준비] ${caseName} - 예약 생성 실패`, pm.response.code, pm.response.text());\n}"
+                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\n\npm.test(`[Patch-준비] ${caseName}: 예약 생성`, () => {\n  pm.expect(pm.response.code).to.eql(200);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n\n  if (typeof body.bookingid === \"number\") {\n    pm.environment.set(\"bookingid\", body.bookingid);\n    pm.variables.set(\"originalBooking\", JSON.stringify(body.booking));\n  } else {\n    console.log(`[Patch-준비] ${caseName} - bookingid 없음`, body);\n  }\n} else {\n  console.log(`[Patch-준비] ${caseName} - 예약 생성 실패`, pm.response.code, pm.response.text());\n}\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(`[Patch-준비] ${caseName}: 생성 응답 구조`, () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.bookingCreated\")));\n    });\n}"
                 ]
               }
             }
@@ -969,7 +969,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\n\npm.test(`[Patch] ${caseName} -> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code, `기대 ${expected}, 실제 ${pm.response.code}`).to.eql(expected);\n});\n\n\nif (pm.response.code !== expected) {\n    console.log(`[Patch] ${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}"
+                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\n\npm.test(`[Patch] ${caseName} -> 기대 ${expected}`, () => {\n    pm.expect(pm.response.code, `기대 ${expected}, 실제 ${pm.response.code}`).to.eql(expected);\n});\n\n\nif (pm.response.code !== expected) {\n    console.log(`[Patch] ${caseName} -> 기대 ${expected}, 실제 ${pm.response.code}`);\n    console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));\n    console.log(\"응답:\", pm.response.text());\n}\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(`[Schema] ${caseName}: 수정 응답 구조`, () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.booking\")));\n    });\n}"
                 ]
               }
             }
@@ -1016,7 +1016,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\nconst originalText = pm.variables.get(\"originalBooking\");\n\npm.test(`[Patch-재조회] ${caseName}: 예약 조회`, () => {\n    pm.expect(pm.response.code).to.eql(200);\n    pm.expect(originalText, \"원본 없음: 예약 생성 단계 실패\").to.exist;\n});\n\nif (pm.response.code === 200 && originalText) {\n    const original = JSON.parse(originalText);\n    const sent = JSON.parse(pm.variables.get(\"requestBody\"));\n    const saved = pm.response.json();\n\n    if (expected === 200) {\n        const expectedBooking = {\n            ...original,\n            ...sent,\n            bookingdates: { ...original.bookingdates, ...(sent.bookingdates || {}) }\n        };\n\n        pm.test(`[Patch-재조회] ${caseName}: 보낸 필드만 바뀌고 나머지는 유지`, () => {\n            pm.expect(saved, \"저장값이 원본+보낸 필드와 다름\").to.eql(expectedBooking);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(expectedBooking)) {\n            console.log(`[Patch-재조회] ${caseName}`);\n            console.log(\"기대:\", JSON.stringify(expectedBooking));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    } else {\n        pm.test(`[Patch-재조회] ${caseName}: 거절된 요청이라 원본 유지`, () => {\n            pm.expect(saved, \"거절돼야 할 요청인데 저장값이 바뀜\").to.eql(original);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(original)) {\n            console.log(`[Patch-재조회] ${caseName}: 거절돼야 할 요청인데 값이 바뀜`);\n            console.log(\"원본:\", JSON.stringify(original));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    }\n}"
+                  "const id = pm.iterationData.get(\"id\");\nconst caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");\nconst expected = pm.iterationData.get(\"expectedStatus\");\nconst originalText = pm.variables.get(\"originalBooking\");\n\npm.test(`[Patch-재조회] ${caseName}: 예약 조회`, () => {\n    pm.expect(pm.response.code).to.eql(200);\n    pm.expect(originalText, \"원본 없음: 예약 생성 단계 실패\").to.exist;\n});\n\nif (pm.response.code === 200 && originalText) {\n    const original = JSON.parse(originalText);\n    const sent = JSON.parse(pm.variables.get(\"requestBody\"));\n    const saved = pm.response.json();\n\n    if (expected === 200) {\n        const expectedBooking = {\n            ...original,\n            ...sent,\n            bookingdates: { ...original.bookingdates, ...(sent.bookingdates || {}) }\n        };\n\n        pm.test(`[Patch-재조회] ${caseName}: 보낸 필드만 바뀌고 나머지는 유지`, () => {\n            pm.expect(saved, \"저장값이 원본+보낸 필드와 다름\").to.eql(expectedBooking);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(expectedBooking)) {\n            console.log(`[Patch-재조회] ${caseName}`);\n            console.log(\"기대:\", JSON.stringify(expectedBooking));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    } else {\n        pm.test(`[Patch-재조회] ${caseName}: 거절된 요청이라 원본 유지`, () => {\n            pm.expect(saved, \"거절돼야 할 요청인데 저장값이 바뀜\").to.eql(original);\n        });\n\n        if (JSON.stringify(saved) !== JSON.stringify(original)) {\n            console.log(`[Patch-재조회] ${caseName}: 거절돼야 할 요청인데 값이 바뀜`);\n            console.log(\"원본:\", JSON.stringify(original));\n            console.log(\"실제:\", JSON.stringify(saved));\n        }\n    }\n}\n\n// ----- 응답 스키마 검증 (200일 때만. 실패 응답은 모양이 달라 상태 코드 판정이 맡음) -----\nif (pm.response.code === 200) {\n    pm.test(`[Schema] ${caseName}: 재조회 응답 구조`, () => {\n        pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.booking\")));\n    });\n}"
                 ]
               }
             },
@@ -1101,6 +1101,26 @@
           "response": []
         }
       ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ===== 응답 스키마 정의 (모든 요청 전에 실행) =====\n// 명세(apidoc) 기준. 요청의 After response에서\n//   pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.booking\")))\n// 처럼 꺼내 쓴다. 명세가 바뀌면 여기 한 곳만 고친다.\n\nconst date = { type: \"string\", pattern: \"^\\\\d{4}-\\\\d{2}-\\\\d{2}$\" };   // YYYY-MM-DD\n\n// 예약 객체: GET /booking/{id}, PATCH /booking/{id} 응답\nconst booking = {\n    type: \"object\",\n    required: [\"firstname\", \"lastname\", \"totalprice\", \"depositpaid\", \"bookingdates\"],\n    properties: {\n        firstname:   { type: \"string\" },\n        lastname:    { type: \"string\" },\n        totalprice:  { type: \"number\" },\n        depositpaid: { type: \"boolean\" },\n        bookingdates: {\n            type: \"object\",\n            required: [\"checkin\", \"checkout\"],\n            properties: { checkin: date, checkout: date },\n            additionalProperties: false\n        },\n        additionalneeds: { type: \"string\" }      // 명세상 optional\n    },\n    additionalProperties: false\n};\n\n// 예약 생성 응답: POST /booking\nconst bookingCreated = {\n    type: \"object\",\n    required: [\"bookingid\", \"booking\"],\n    properties: { bookingid: { type: \"number\" }, booking },\n    additionalProperties: false\n};\n\n// 토큰 발급 성공 응답: POST /auth\nconst auth = {\n    type: \"object\",\n    required: [\"token\"],\n    properties: { token: { type: \"string\" } },\n    additionalProperties: false\n};\n\npm.variables.set(\"schema.booking\", JSON.stringify(booking));\npm.variables.set(\"schema.bookingCreated\", JSON.stringify(bookingCreated));\npm.variables.set(\"schema.auth\", JSON.stringify(auth));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
     }
   ]
 }
