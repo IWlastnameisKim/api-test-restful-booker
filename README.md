@@ -38,8 +38,9 @@ api-test-restful-booker/
  ├─ collections/
  │   └─ Restful-booker.postman_collection.json   # 요청과 테스트 스크립트
  ├─ data/                                        # 케이스 원본 (id, case, purpose, expectedStatus, knownIssue, body)
- │   ├─ booking-cases.json                       # POST 데이터 기반 테스트 입력값 (9행)
- │   └─ patch-cases.json                         # PATCH 데이터 기반 테스트 입력값 (33행)
+ │   ├─ booking-cases.json                       # POST 데이터 기반 테스트 입력값 (14행)
+ │   ├─ patch-cases.json                         # PATCH 데이터 기반 테스트 입력값 (36행)
+ │   └─ regression-known-issues.json             # regression의 알려진 결함 태그 목록
  ├─ env/
  │   └─ restful-booker.postman_environment.json  # baseUrl, username, password, token, bookingid
  ├─ docs/
@@ -59,9 +60,9 @@ api-test-restful-booker/
 | --- | --- | --- |
 | 01-Setup | 테스트 준비 | 토큰 발급, 예약 생성 후 `token`·`bookingid`를 Environment에 자동 저장 |
 | 02-Flow | 정상 흐름 검증 | 예약 조회 → 수정 → 재조회로 변경 내용이 실제 저장됐는지 확인 |
-| 03-Regression | 회귀 테스트 | 발견한 결함 10건. 올바른 동작(명세)을 기대값으로 작성 |
+| 03-Regression | 회귀 테스트 | 데이터 기반으로 표현할 수 없는 결함 4건(Bug-1 인증 실패, Bug-4 토큰 없음, Bug-8·9 조회 조건). 입력값 결함은 06·07 데이터 케이스가 맡음 |
 | 04-CleanUp | 정리와 삭제 검증 | 예약 삭제 → 삭제 후 조회(404) |
-| 05-Regression-Delete | 회귀 테스트 | 이미 삭제된 예약 재삭제. 삭제 이후에 실행되어야 해서 CleanUp 뒤에 위치 |
+| 05-Regression-Delete | 회귀 테스트 | 이미 삭제된 예약 재삭제(Bug-11). 삭제 이후에 실행되어야 해서 CleanUp 뒤에 위치 |
 | 06-Data-Driven | 데이터 기반 테스트 | `POST /booking` 요청 1개를 `data/booking-cases.json`의 행 수만큼 반복 |
 | 07-Data-Driven-Patch | 데이터 기반 테스트 | 토큰 발급 → 예약 생성 → `PATCH` → 재조회 → 삭제 5개 요청을 `data/patch-cases.json`의 행 수만큼 반복 |
 
@@ -72,7 +73,7 @@ api-test-restful-booker/
 | 그룹 | 폴더 | 목적 | 실패 시 |
 | --- | --- | --- | --- |
 | smoke | 01-Setup, 02-Flow, 04-CleanUp | 정상 기능 동작 확인 | 파이프라인 실패 (진짜 문제) |
-| regression | 01-Setup, 03-Regression, 04-CleanUp, 05-Regression-Delete | 알려진 결함 추적 | 기록만, 파이프라인은 통과 |
+| regression | 01-Setup, 03-Regression, 04-CleanUp, 05-Regression-Delete | 알려진 결함 추적 | 새 실패만 파이프라인 실패 (알려진 결함은 `data/regression-known-issues.json` 기준) |
 | data | 06-Data-Driven + `data/booking-cases.json` | 생성 입력값 검증 케이스 반복 | 새 실패만 파이프라인 실패 (알려진 결함은 기록) |
 | data-patch | 07-Data-Driven-Patch + `data/patch-cases.json` | 부분 수정 입력값 검증과 저장 결과 확인 | 새 실패만 파이프라인 실패 (알려진 결함은 기록) |
 
@@ -109,22 +110,27 @@ api-test-restful-booker/
 
 - CSV가 아닌 **JSON**을 쓰는 이유: 숫자(`990`), 문자열(`"9ㅁ90"`), boolean(`true`), 필드 누락을 타입 그대로 표현하기 위해
 - `body`를 통째로 두는 이유: `{{변수}}` 치환은 값을 글자로 끼워 넣어 문자열의 따옴표가 사라짐. Before request 스크립트에서 `JSON.stringify(body)`로 타입을 보존한 JSON을 만들어 요청 바디(`{{requestBody}}`)에 넣음
-- `lastname`을 케이스마다 다르게 두어(`QA1`~`QA9`) 서버에 저장된 예약이 어느 케이스에서 생성됐는지 추적
+- `lastname`을 케이스마다 다르게 두어(`QA1`~`QA14`) 서버에 저장된 예약이 어느 케이스에서 생성됐는지 추적
 - **정상 케이스를 대조군으로 포함**: 정상 생성부터 실패하면 서버 결함이 아니라 데이터·요청·환경 문제로 판단
 
 ### 케이스
 
-| 케이스 | 입력 | 기대 |
-| --- | --- | --- |
-| 정상 생성 | 모든 값 정상 | 200 |
-| 가격 경계값 1 | `totalprice: 1` | 200 |
-| 가격 음수 | `totalprice: -990` | 400 |
-| 가격에 문자열 포함 | `totalprice: "9ㅁ90"` | 400 |
-| first name 누락 | `firstname` 없음 | 400 |
-| 체크인·아웃 날짜 역전 | checkin > checkout | 400 |
-| 체크인 형식 오류 | `checkin: "26th Oct 2026"` | 400 |
-| depositpaid 문자열 | `depositpaid: "true"` | 400 |
-| depositpaid 문자열 false | `depositpaid: "false"` | 400 |
+| ID | 케이스 | 입력 | 기대 |
+| --- | --- | --- | --- |
+| POST-001 | 정상 생성 | 모든 값 정상 | 200 |
+| POST-002 | [경계] 가격 1 (양수) | `totalprice: 1` | 200 |
+| POST-010 | [경계] 가격 0 | `totalprice: 0` | 200 |
+| POST-003 | [경계] 가격 -1 (음수) | `totalprice: -1` | 400 |
+| POST-004 | 가격에 문자열 포함 | `totalprice: "9ㅁ90"` | 400 |
+| POST-005 | first name 누락 | `firstname` 없음 | 400 |
+| POST-011 | [경계] 1박 | checkout = checkin + 1일 | 200 |
+| POST-006 | [경계] 0박 | checkout = checkin | 400 |
+| POST-007 | 체크인 형식 오류 | `checkin: "26th Oct 2026"` | 400 |
+| POST-013 | [경계] 윤년 2월 29일 | `2028-02-29` | 200 |
+| POST-014 | [경계] 평년 2월 29일 | `2026-02-29` | 400 |
+| POST-012 | [경계] firstname 1글자 | `firstname: "A"` | 200 |
+| POST-008 | depositpaid 문자열 | `depositpaid: "true"` | 400 |
+| POST-009 | depositpaid 문자열 false | `depositpaid: "false"` | 400 |
 
 ### 스크립트
 
@@ -157,16 +163,33 @@ api-test-restful-booker/
 - **저장소 구분**: URL·헤더에 들어가는 `token`·`bookingid`는 Environment, 비교용 `originalBooking`·`requestBody`는 이번 실행 동안만 쓰는 variables
 - **이전 행 값 차단**: variables는 행이 바뀌어도 남으므로, 예약 생성 전에 `originalBooking`을 지워 생성 실패 시 이전 행 원본과 비교하지 않도록 함
 
-### 케이스 (33행)
+### 케이스 (36행)
 
 | 분류 | 행 수 | 내용 | 기대 |
 | --- | --- | --- | --- |
 | 전체 수정 | 2 | 모든 필드 정상 값으로 수정 | 200 |
-| 단일 필드 수정 | 7 | firstname, lastname, totalprice(8990, 경계값 1), depositpaid, bookingdates, additionalneeds | 200 |
+| 단일 필드 수정 | 7 | firstname, lastname, totalprice(8990, 경계 1), depositpaid, bookingdates, additionalneeds | 200 |
+| 경계값 | 4 | 가격 0, 1박, firstname 1글자, 윤년 2월 29일 | 200 |
 | 타입 오류 | 9 | 이름에 숫자·boolean, 가격에 문자열, depositpaid에 문자열·숫자, bookingdates에 문자열, additionalneeds에 숫자 | 400 |
-| 음수 | 2 | totalprice `-1`(경계값), `-990` | 400 |
-| 날짜 | 7 | 역전(둘 다 보냄, checkout만 보냄), 형식 오류 2종, 없는 날짜(13월, 2월 30일), 빈 문자열 | 400 |
+| 경계값 (무효) | 3 | 가격 -1, 0박, 평년 2월 29일 | 400 |
+| 날짜 | 5 | checkout만 보내 기존 checkin보다 이전, 형식 오류 2종, 13월, 빈 문자열 | 400 |
 | 추가 | 6 | checkin만 수정(200), 빈 body, null, 빈 문자열 이름, 대문자 필드명, 정의되지 않은 필드 | 400 |
+
+BKG-PATCH-020(가격 -990)은 음수 분할에서 경계값(-1)과 중복이라 제거했고, ID는 재사용하지 않습니다.
+
+### 경계값 설계
+
+동등 분할의 대표값 대신 **분할의 경계에 맞닿은 값**만 남겼습니다.
+
+| 대상 | 종류 | 분할 | 경계값 (기대) |
+| --- | --- | --- | --- |
+| totalprice | 단일 필드 | 음수 / 0 / 양수 | -1 (400), 0 (200), 1 (200) |
+| 숙박 기간 (checkout − checkin) | 필드 간 관계 | 무효(≤ 0일) / 유효(> 0일) | 0박 (400), 1박 (200) |
+| checkin 날짜 유효성 | 단일 필드 | 없는 날 / 있는 날 | 평년 2월 29일 (400), 윤년 2월 29일 (200) |
+| firstname 길이 | 단일 필드 | 빈 문자열 / 1글자 이상 | `""` (정책 확인), `"A"` (200) |
+
+- 가격 0(무료)은 유효로, 숙박 기간은 `checkout > checkin`(최소 1박)만 유효로 정했습니다. 명세에 없는 규칙이라 결정 내용을 기록해 둡니다.
+- 경계 바로 바깥 값(-1, 0박)도 그대로 저장되어, 서버에 경계 검증 자체가 없음을 확인했습니다.
 
 ## 테스트 케이스 문서
 
@@ -208,7 +231,7 @@ api-test-restful-booker/
 | 구분 | 케이스 |
 | --- | --- |
 | 스키마 위반으로 잡힘 (11행) | `0NaN-aN-aN` 날짜 (PATCH-17, 22~25, 27, 28), `null` (PATCH-30), 다른 타입 (PATCH-10, 11, 18), POST-07 |
-| 스키마는 통과, 값 비교로만 잡힘 | 빈 문자열 이름, 숫자로 변환된 가격, 음수, 날짜 역전, 2월 30일 → 3월 2일 |
+| 스키마는 통과, 값 비교로만 잡힘 | 빈 문자열 이름, 숫자로 변환된 가격, 음수, 0박, 평년 2월 29일 → 3월 1일 |
 
 스키마는 **모양**을 보고 **의미**(음수인지, 날짜 순서, 보낸 값이 그대로 저장됐는지)는 보지 않으므로 값 비교를 대체하지 않고 함께 씁니다. 이름의 최소 길이(`minLength`)처럼 명세에 없는 제약은 스키마에 넣지 않았습니다.
 
@@ -216,7 +239,7 @@ api-test-restful-booker/
 
 데이터 기반 테스트는 기대값을 명세 기준으로 작성하기 때문에, 결함이 고쳐지기 전까지 늘 실패합니다. 그대로 두면 CI가 항상 빨간색이라 **새로 생긴 실패를 알아챌 수 없습니다.** 그래서 실패를 알려진 결함과 새 실패로 나눠 판정합니다.
 
-1. 데이터 파일의 실패 행에 `knownIssue`로 결함 ID를 적습니다. (POST 7행, PATCH 24행)
+1. 데이터 파일의 실패 행에 `knownIssue`로 결함 ID를 적습니다. (POST 8행, PATCH 23행) regression은 `data/regression-known-issues.json`에 결함 태그(`[Bug-1]` 등) 5개를 등록하고, 테스트 이름의 태그로 판정합니다.
 2. Newman은 `--suppress-exit-code`로 끝까지 실행하고, 결과를 JSON(`reports/*.json`)으로 저장합니다.
 3. `scripts/check-known-issues.js`가 JSON 리포트와 데이터 파일을 행 단위로 비교해 분류하고, 종료 코드로 최종 판정합니다.
 
@@ -275,7 +298,7 @@ npm run test:api
 | job | 실행 | 설정 |
 | --- | --- | --- |
 | smoke | `npm run test:smoke` | 실패하면 워크플로 실패 |
-| regression | `npm run test:regression` | `continue-on-error: true`. 알려진 결함으로 job은 실패로 표시되지만 워크플로는 통과 |
+| regression | `npm run test:regression` | 새 실패가 있으면 워크플로 실패. 알려진 결함 태그(`data/regression-known-issues.json`)의 실패는 Summary에 기록 |
 | data | `npm run test:data` | 새 실패·준비 실패가 있으면 워크플로 실패. 알려진 결함은 Summary에 기록 |
 | data-patch | `npm run test:data-patch` | 위와 같음 |
 
@@ -288,33 +311,34 @@ npm run test:api
 | 그룹 | requests | assertions | 실패 | 결과 |
 | --- | --- | --- | --- | --- |
 | smoke | 7 | 15 | 0 | 모두 통과 |
-| regression | 15 | 18 | 11 | 알려진 결함 11건 |
-| data | 9 (iterations 9) | 17 | 8 | 정상 2건 통과, 결함 7건 (POST-07은 스키마 위반 포함) |
-| data-patch | 165 (iterations 33) | 330 | 64 | 아래 참고 (스키마 위반 11행 × PATCH·재조회 2곳 포함) |
+| regression | 9 | 12 | 5 | 알려진 결함 5건 (KNOWN_FAIL 5, NEW_FAIL 0) |
+| data | 14 (iterations 14) | 27 | 9 | PASS 6, KNOWN_FAIL 8, NEW_FAIL 0 (POST-007은 스키마 위반 포함) |
+| data-patch | 180 (iterations 36) | 360 | 62 | PASS 13, KNOWN_FAIL 23, NEW_FAIL 0 (스키마 위반 11행 × PATCH·재조회 2곳 포함) |
 
-regression의 실패 11건은 모두 **알려진 결함에 대한 회귀 테스트**입니다(03-Regression 10건 + 재삭제 1건). 통과하는 5건은 Setup의 토큰 발급과 예약 생성, `[Bug-1] 로그인 실패 시 토큰 없음`, CleanUp의 삭제와 삭제 후 조회입니다.
+regression의 실패 5건은 모두 **알려진 결함에 대한 회귀 테스트**입니다(Bug-1, 4, 8, 9, 11). 통과하는 7건은 Setup의 토큰 발급·예약 생성과 각 스키마 검증, `[Bug-1] 로그인 실패 시 토큰 없음`, CleanUp의 삭제와 삭제 후 조회입니다.
 결함이 수정되면 해당 테스트가 PASS로 바뀌고, 다시 FAIL이 되면 결함이 재발한 것으로 판단합니다.
 
-data-patch는 요청·스크립트 오류 없이 33행이 모두 실행됩니다. 정상 수정 10행 중 9행이 통과하고(`checkin`만 수정 1행 실패), 거절돼야 할 23행은 **모두 200을 반환**했습니다. 그중 18행은 재조회에서 잘못된 값이 실제로 저장된 것이 확인됐습니다.
+data-patch는 요청·스크립트 오류 없이 36행이 모두 실행됩니다. 기대 200인 14행 중 13행이 통과하고(`checkin`만 수정 1행 실패), 거절돼야 할 22행은 **모두 200을 반환**했습니다.
 
 ## 발견한 결함
 
 | 번호 | 요청 | 입력 | 기대 | 실제 | 심각도 |
 | --- | --- | --- | --- | --- | --- |
 | Bug-1 | `POST /auth` | 틀린 비밀번호 | 401 | 200 + `Bad credentials` | 중 |
-| Bug-2 | `POST /booking` | 음수 가격 | 400 | 200, 음수로 저장 | 상 |
-| Bug-3 | `PATCH /booking/{id}` | 음수 가격 | 400 | 200, 음수로 저장 | 상 |
+| Bug-2 | `POST /booking` | 음수 가격 (경계 -1부터) | 400 | 200, 음수로 저장 | 상 |
 | Bug-4 | `PATCH /booking/{id}` | 인증 토큰 없음 | 401 | 403 | 중 |
 | Bug-5 | `POST /booking` | 필수값(firstname) 누락 | 400 | 500 | 중 |
-| Bug-6 | `POST /booking` | 체크아웃이 체크인보다 이전 | 400 | 200, 그대로 저장 | 상 |
+| Bug-6 | `POST /booking` | 체크아웃이 체크인과 같거나 이전 (경계 0박부터) | 400 | 200, 그대로 저장 | 상 |
 | Bug-7 | `POST /booking` | 체크인에 날짜가 아닌 값 | 400 | 200, `0NaN-aN-aN`으로 저장 | 상 |
 | Bug-8 | `GET /booking?checkin=zz` | 잘못된 날짜 조건 | 400 | 500 | 중 |
 | Bug-9 | `GET /booking?checkin=zz` | 에러 응답 형식 | JSON | `text/plain` | 하 |
 | Bug-10 | `POST /booking` | 가격 `"11ㅁㅁㅁ1"` | 400 | 200, `11`로 잘려 저장 | 상 |
-| 재삭제 | `DELETE /booking/{id}` | 이미 삭제된 예약 | 404 | 405 | 하 |
-| Data | `POST /booking` | 체크인 `"26th Oct 2026"` | 400 | 200, `0NaN-aN-aN`으로 저장 | 상 |
-| Data | `POST /booking` | depositpaid `"true"` (문자열) | 400 | 200, boolean `true`로 변환 저장 | 중 |
-| Data | `POST /booking` | depositpaid `"false"` (문자열) | 400 | 200, **`true`로 저장 (의미가 반대로 뒤집힘)** | 상 |
+| Bug-11 | `DELETE /booking/{id}` | 이미 삭제된 예약 | 404 | 405 | 하 |
+| D-1 | `POST /booking` | depositpaid `"true"` (문자열) | 400 | 200, boolean `true`로 변환 저장 | 중 |
+| D-2 | `POST /booking` | depositpaid `"false"` (문자열) | 400 | 200, **`true`로 저장 (의미가 반대로 뒤집힘)** | 상 |
+| D-3 | `POST /booking` | 평년 2월 29일 `2026-02-29` | 400 | 200, `2026-03-01`로 넘어가 저장 | 중 |
+
+- Bug-3(PATCH 음수 가격)은 P-6과 같은 결함이라 P-6으로 통합했습니다. 03-Regression에서 데이터 케이스와 겹치던 Bug-2·3·5·6·7·10 요청은 제거하고, 데이터 케이스(POST-003, PATCH-019, POST-005, POST-006, POST-007, POST-004)가 검증합니다.
 
 **depositpaid `"false"` → `true`**: 문자열을 boolean으로 변환할 때 비어 있지 않으면 `true`가 되는 것으로 보입니다. `"true"`만 테스트했다면 결과가 우연히 맞아 낮은 우선순위로 판단했을 결함으로, 값이 두 개뿐인 필드는 양쪽 값을 모두 테스트해야 함을 보여줍니다. 보증금 미납 예약이 납부로 기록될 수 있습니다.
 
@@ -329,11 +353,11 @@ data-patch는 요청·스크립트 오류 없이 33행이 모두 실행됩니다
 | P-3 | firstname `123`, lastname `true`, additionalneeds `100` | 400 | 200, 숫자·boolean 그대로 저장 | 상 |
 | P-4 | totalprice `"990"` (문자열) | 400 | 200, 숫자 `990`으로 변환 저장 | 중 |
 | P-5 | totalprice `"9ㅁ90"` | 400 | 200, `9`로 잘려 저장 (Bug-10과 같은 유형) | 상 |
-| P-6 | totalprice `-1`, `-990` | 400 | 200, 음수 저장 (Bug-3과 같은 유형) | 상 |
+| P-6 | totalprice `-1` (음수 경계) | 400 | 200, 음수 저장 | 상 |
 | P-7 | depositpaid `0` | 400 | 200, `false`로 변환 저장 | 중 |
-| P-8 | 체크인·아웃 날짜 역전 | 400 | 200, 그대로 저장 | 상 |
+| P-8 | 체크아웃이 체크인과 같음 (0박, 기간 경계) | 400 | 200, 그대로 저장 | 상 |
 | P-9 | 날짜 `"20180101"`, `"26th Oct 2026"`, `2026-13-01`, `""`, bookingdates에 문자열 | 400 | 200, `0NaN-aN-aN`으로 저장 | 상 |
-| P-10 | 날짜 `2026-02-30` | 400 | 200, `2026-03-02`로 넘어가 저장 | 중 |
+| P-10 | 평년 2월 29일 `2026-02-29` | 400 | 200, 다음 날로 넘어가 저장 | 중 |
 | P-11 | firstname `null` | 400 | 200, `null` 저장 | 상 |
 | P-12 | firstname `""` | 400 | 200, 빈 문자열 저장 | 정책 확인 필요 |
 | P-13 | depositpaid `"true"`, `"false"` (문자열) | 400 | 200, 값은 무시되고 원본 유지 | 정책 확인 필요 |
@@ -358,6 +382,7 @@ data-patch는 요청·스크립트 오류 없이 33행이 모두 실행됩니다
 - **방어적 스크립트**: 토큰·bookingid는 응답이 성공이고 값의 타입이 맞을 때만 저장. 실패 응답이 기존 값을 덮어쓰지 않도록 함
 - **응답 구조 검증**: 값 비교와 별개로, 응답이 명세의 모양(필드, 타입, 형식)을 지키는지 JSON Schema로 확인. 스키마는 컬렉션 한 곳에서 정의
 - **부작용 검증**: 상태 코드만이 아니라 재조회로 실제 저장 여부를 확인 (수정 후 재조회, 삭제 후 조회)
+- **경계값 중심 설계**: 분할마다 경계에 맞닿은 값만 남겨 케이스 수를 줄이면서 결함 검출력을 유지. 단일 필드(가격, 날짜)와 필드 간 관계(숙박 기간)를 구분
 - **케이스 설계와 실행의 분리**: 동등 분할·경계값으로 뽑은 입력값 케이스는 데이터 파일로 관리하고, 검증 로직은 요청 하나에 공통으로 둠
 - **행 간 독립**: 데이터 기반 테스트에서 행마다 필요한 데이터를 새로 만들어, 실행 순서나 앞 행의 결과에 영향을 받지 않도록 함
 - **거절 케이스도 저장 결과 확인**: 400이 기대인 요청도 재조회해 원본이 유지됐는지 확인. 상태 코드가 맞아도 값이 바뀌었다면 결함
@@ -372,7 +397,9 @@ data-patch는 요청·스크립트 오류 없이 33행이 모두 실행됩니다
 - [x] 테스트 이름에 케이스 ID 표시 (`[BKG-PATCH-013] ...`)로 리포트와 문서 연결
 - [x] 알려진 결함(`knownIssue`)과 새 실패를 구분해 data·data-patch job의 `continue-on-error` 제거
 - [x] 응답 스키마 검증 표준화 (컬렉션 레벨 스키마 정의, 01·02·06·07 적용)
-- [ ] regression(03)에도 같은 방식 적용, 03과 데이터 케이스 중복 정리 (스키마 검증 포함)
+- [x] regression(03)에 known issue 방식 적용, 03과 데이터 케이스 중복 정리. regression job `continue-on-error` 제거
+- [x] 동등 분할 대표값을 경계값 케이스로 교체 (가격, 숙박 기간, 날짜 유효성, 이름 길이)
+- [ ] 정책 확인 항목(P-12 빈 이름, P-13 depositpaid 문자열) 결정 후 기대값 확정
 - [ ] Newman JSON 리포트(`-r json`)와 데이터 파일로 데이터셋 시트 자동 생성
 - [x] 로그인 계정 정보를 Environment 변수(`username`, `password`)로 분리
 - [x] 데이터 파일(JSON)로 입력값 케이스를 반복 실행하는 데이터 기반 테스트

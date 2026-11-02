@@ -1,0 +1,7 @@
+[
+  { "tag": "[Bug-1]", "knownIssue": "Bug-1", "case": "로그인 실패 시 401" },
+  { "tag": "[Bug-4]", "knownIssue": "Bug-4", "case": "토큰 없이 수정 시 401" },
+  { "tag": "[Bug-8]", "knownIssue": "Bug-8", "case": "잘못된 날짜 조건 조회 시 400" },
+  { "tag": "[Bug-9]", "knownIssue": "Bug-9", "case": "잘못된 조회의 에러 응답이 JSON" },
+  { "tag": "[Bug-11]", "knownIssue": "Bug-11", "case": "이미 삭제된 예약 재삭제 시 404" }
+]

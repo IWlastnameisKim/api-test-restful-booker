@@ -8,18 +8,18 @@
   },
   {
     "id": "BKG-POST-002",
-    "case": "가격 경계값 1",
-    "purpose": "가격 최솟값 1로 예약이 생성되는지 확인",
+    "case": "[경계] 가격 1 (양수)",
+    "purpose": "양수 분할의 경계인 1로 예약이 생성되는지 확인",
     "expectedStatus": 200,
     "body": {"firstname": "Kim", "lastname": "QA2", "totalprice": 1, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "Allergic to orange"}
   },
   {
     "id": "BKG-POST-003",
-    "case": "가격 음수",
-    "purpose": "음수 가격으로는 예약 생성이 거절되는지 확인",
+    "case": "[경계] 가격 -1 (음수)",
+    "purpose": "음수 분할의 경계인 -1이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "Bug-2",
-    "body": {"firstname": "Kim", "lastname": "QA3", "totalprice": -990, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
+    "body": {"firstname": "Kim", "lastname": "QA3", "totalprice": -1, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   },
   {
     "id": "BKG-POST-004",
@@ -39,11 +39,11 @@
   },
   {
     "id": "BKG-POST-006",
-    "case": "체크인*아웃 날짜 역전",
-    "purpose": "체크아웃이 체크인보다 이전이면 예약 생성이 거절되는지 확인",
+    "case": "[경계] 0박 (checkout = checkin)",
+    "purpose": "무효 기간(checkout ≤ checkin)의 경계인 0박이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "Bug-6",
-    "body": {"firstname": "Kim", "lastname": "QA6", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-11-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
+    "body": {"firstname": "Kim", "lastname": "QA6", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-10-20"}, "additionalneeds": "brunch & liquor"}
   },
   {
     "id": "BKG-POST-007",
@@ -68,5 +68,41 @@
     "expectedStatus": 400,
     "knownIssue": "D-2",
     "body": {"firstname": "Kim", "lastname": "QA9", "totalprice": 990, "depositpaid": "false", "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
+  },
+  {
+    "id": "BKG-POST-010",
+    "case": "[경계] 가격 0",
+    "purpose": "가격 0(무료)으로 예약이 생성되는지 확인",
+    "expectedStatus": 200,
+    "body": {"firstname": "Kim", "lastname": "QA10", "totalprice": 0, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
+  },
+  {
+    "id": "BKG-POST-011",
+    "case": "[경계] 1박 (checkout = checkin + 1일)",
+    "purpose": "유효 기간(checkout > checkin)의 경계인 1박으로 예약이 생성되는지 확인",
+    "expectedStatus": 200,
+    "body": {"firstname": "Kim", "lastname": "QA11", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-10-21"}, "additionalneeds": "brunch & liquor"}
+  },
+  {
+    "id": "BKG-POST-012",
+    "case": "[경계] firstname 1글자",
+    "purpose": "빈 문자열 바로 위인 1글자 이름으로 예약이 생성되는지 확인",
+    "expectedStatus": 200,
+    "body": {"firstname": "A", "lastname": "QA12", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
+  },
+  {
+    "id": "BKG-POST-013",
+    "case": "[경계] 윤년 2월 29일 (2028-02-29)",
+    "purpose": "윤년에만 있는 2월 29일로 예약이 생성되는지 확인",
+    "expectedStatus": 200,
+    "body": {"firstname": "Kim", "lastname": "QA13", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2028-02-29", "checkout": "2028-03-01"}, "additionalneeds": "brunch & liquor"}
+  },
+  {
+    "id": "BKG-POST-014",
+    "case": "[경계] 평년 2월 29일 (2026-02-29)",
+    "purpose": "평년에는 없는 2월 29일이 거절되는지 확인",
+    "expectedStatus": 400,
+    "knownIssue": "D-3",
+    "body": {"firstname": "Kim", "lastname": "QA14", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-02-29", "checkout": "2026-03-05"}, "additionalneeds": "brunch & liquor"}
   }
 ]

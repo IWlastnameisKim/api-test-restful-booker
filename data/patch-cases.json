@@ -36,8 +36,8 @@
   },
   {
     "id": "BKG-PATCH-006",
-    "case": "[단일] totalprice 경계값 1",
-    "purpose": "가격 최솟값 1로 수정되는지 확인",
+    "case": "[경계] totalprice 1 (양수)",
+    "purpose": "양수 분할의 경계인 1로 수정되는지 확인",
     "expectedStatus": 200,
     "body": {"totalprice": 1}
   },
@@ -136,27 +136,19 @@
   },
   {
     "id": "BKG-PATCH-019",
-    "case": "[음수] totalprice -1 (경계값)",
-    "purpose": "음수 경계값 -1로는 수정이 거절되는지 확인",
+    "case": "[경계] totalprice -1 (음수)",
+    "purpose": "음수 분할의 경계인 -1로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "P-6",
     "body": {"totalprice": -1}
   },
   {
-    "id": "BKG-PATCH-020",
-    "case": "[음수] totalprice -990",
-    "purpose": "음수 가격으로는 수정이 거절되는지 확인",
-    "expectedStatus": 400,
-    "knownIssue": "P-6",
-    "body": {"totalprice": -990}
-  },
-  {
     "id": "BKG-PATCH-021",
-    "case": "[날짜] 역전 - 둘 다 보냄",
-    "purpose": "체크아웃이 체크인보다 이전이 되도록 두 날짜를 보내면 거절되는지 확인",
+    "case": "[경계] 0박 (checkout = checkin)",
+    "purpose": "무효 기간(checkout ≤ checkin)의 경계인 0박으로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "P-8",
-    "body": {"bookingdates": {"checkin": "2026-11-20", "checkout": "2026-11-01"}}
+    "body": {"bookingdates": {"checkin": "2026-10-20", "checkout": "2026-10-20"}}
   },
   {
     "id": "BKG-PATCH-022",
@@ -192,11 +184,11 @@
   },
   {
     "id": "BKG-PATCH-026",
-    "case": "[날짜] 없는 날짜 - 2월 30일",
-    "purpose": "존재하지 않는 날짜(2월 30일)로는 수정이 거절되는지 확인",
+    "case": "[경계] 평년 2월 29일 (2026-02-29)",
+    "purpose": "평년에는 없는 2월 29일로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "P-10",
-    "body": {"bookingdates": {"checkin": "2026-02-30", "checkout": "2026-03-05"}}
+    "body": {"bookingdates": {"checkin": "2026-02-29", "checkout": "2026-03-05"}}
   },
   {
     "id": "BKG-PATCH-027",
@@ -253,5 +245,33 @@
     "expectedStatus": 400,
     "knownIssue": "P-14",
     "body": {"discount": 50}
+  },
+  {
+    "id": "BKG-PATCH-034",
+    "case": "[경계] totalprice 0",
+    "purpose": "가격 0(무료)으로 수정되는지 확인",
+    "expectedStatus": 200,
+    "body": {"totalprice": 0}
+  },
+  {
+    "id": "BKG-PATCH-035",
+    "case": "[경계] 1박 (checkout = checkin + 1일)",
+    "purpose": "유효 기간(checkout > checkin)의 경계인 1박으로 수정되는지 확인",
+    "expectedStatus": 200,
+    "body": {"bookingdates": {"checkin": "2026-10-20", "checkout": "2026-10-21"}}
+  },
+  {
+    "id": "BKG-PATCH-036",
+    "case": "[경계] firstname 1글자",
+    "purpose": "빈 문자열 바로 위인 1글자 이름으로 수정되는지 확인",
+    "expectedStatus": 200,
+    "body": {"firstname": "A"}
+  },
+  {
+    "id": "BKG-PATCH-037",
+    "case": "[경계] 윤년 2월 29일 (2028-02-29)",
+    "purpose": "윤년에만 있는 2월 29일로 수정되는지 확인",
+    "expectedStatus": 200,
+    "body": {"bookingdates": {"checkin": "2028-02-29", "checkout": "2028-03-01"}}
   }
 ]

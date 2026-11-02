@@ -271,95 +271,6 @@
           "response": []
         },
         {
-          "name": "[Bug-2] 예약 생성 시 가격 음수면 400 에러 처리",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"[Bug-2] 음수 생성 요청 400 에러 처리\", () => {\n    pm.response.to.have.status(400);\n});\n\nif (pm.response.code === 200) {\n    const body = pm.response.json();\n    console.log(\"음수 가격 생성 성공함\", body.bookingid, body.booking.totalprice);\n}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"firstname\" : \"kim\",\n    \"lastname\" : \"qq\",\n    \"totalprice\" : -111,\n    \"depositpaid\" : true,\n    \"bookingdates\" : {\n        \"checkin\" : \"2018-01-01\",\n        \"checkout\" : \"2019-01-01\"\n    },\n    \"additionalneeds\" : \"Breakfast\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/booking",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "booking"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "[Bug-3] 예약 변경 시 가격 음수면 400 에러 처리",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"[Bug-3] 음수가격 요청에 대해 400 에러 처리\", () => {\n    pm.response.to.have.status(400);\n});\n\nif (pm.response.code === 200) { \n    const body = pm.response.json();\n    console.log(\"가격 음수로 설정됨\", body.bookingid, body.totalprice);\n}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Cookie",
-                "value": "token={{token}}"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"firstname\" : \"kim\",\n    \"lastname\" : \"QA\",\n    \"totalprice\" : -99930,\n    \"depositpaid\" : true,\n    \"bookingdates\" : {\n        \"checkin\" : \"2026-10-11\",\n        \"checkout\" : \"2026-10-26\"\n    },\n    \"additionalneeds\" : \"Breakfast\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/booking/{{bookingid}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "booking",
-                "{{bookingid}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
           "name": "[Bug-4] 토큰 없이 수정 시 401 에러 처리",
           "event": [
             {
@@ -402,132 +313,6 @@
               "path": [
                 "booking",
                 "{{bookingid}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "[Bug-5] required 누락상태로 요청 시 400 에러 처리",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"[Bug-5] required 누락 상태로 요청 시 400 에러 처리(firstname)\", () => { \n    pm.response.to.have.status(400);\n});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"lastname\" : \"Brown\",\n    \"totalprice\" : 111,\n    \"depositpaid\" : true,\n    \"bookingdates\" : {\n        \"checkin\" : \"2018-01-01\",\n        \"checkout\" : \"2019-01-01\"\n    },\n    \"additionalneeds\" : \"Breakfast\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/booking",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "booking"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "[Bug-6] 체크인 날짜 역전현상 에러 처리",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"[Bug-6] 체크아웃이 체크인보다 이전이면 400\", () => {\n  pm.expect(pm.response.code).to.eql(400);\n});\n\nif (pm.response.code === 200) {\n  const body = pm.response.json();\n  console.log(\n    \"체크인/아웃 날짜 역전 발생\",\n    \"check-in: \" + body.booking.bookingdates.checkin,\n    \"check-out: \" + body.booking.bookingdates.checkout\n  );\n}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"firstname\" : \"Jim2\",\n    \"lastname\" : \"Brown\",\n    \"totalprice\" : 111,\n    \"depositpaid\" : true,\n    \"bookingdates\" : {\n        \"checkin\" : \"2020-01-01\",\n        \"checkout\" : \"2019-01-01\"\n    },\n    \"additionalneeds\" : \"Breakfast\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/booking",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "booking"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "[Bug-7] 체크인 날짜 문자열 400 에러 처리",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"[Bug-7] 체크인 날짜 문자열 400 에러 처리\",() => {\n    pm.expect(pm.response.code).to.eql(400);\n});\n\nif (pm.response.code !== 400) {\n    console.log(\"[Bug-7] 400 에러 처리가 아님\", \"statusCode:\"+pm.response.code, pm.response.text());\n};\n\nif (pm.response.code === 200) {\n  const sent = JSON.parse(pm.request.body.raw);\n  const body = pm.response.json()\n  console.log(`[Bug-7] 보낸 checkin: ${sent.bookingdates.checkin} / 저장된 checkin: ${body.booking.bookingdates.checkin}`);\n  }"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{ \n    \"firstname\" : \"Jim2\",\n    \"lastname\" : \"Brown\",\n    \"totalprice\" : 111,\n    \"depositpaid\" : true,\n    \"bookingdates\" : {\n        \"checkin\" : \"zcx\",\n        \"checkout\" : \"2019-01-01\"\n    },\n    \"additionalneeds\" : \"Breakfast\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/booking",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "booking"
               ]
             }
           },
@@ -630,48 +415,6 @@
             }
           },
           "response": []
-        },
-        {
-          "name": "[Bug-10] 금액에 문자열이 중간에 섞인 경우 400에러 처리",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"[Bug-10] 금액에 문자열이 섞인 경우 400에러 처리\", () => {\n    pm.expect(pm.response.code).to.eql(400);\n});\n\n\nif (pm.response.code !== 400) {\n    console.log(\"[Bug-10] 상태코드 확인 필요\", pm.response.code);\n\n    if (pm.response.code === 200) {\n        const body = pm.response.json();\n        const sent = JSON.parse(pm.request.body.raw);\n        console.log(`[Bug-10]보낸 totalprice: ${sent.totalprice} / 저장된 totalprice: ${body.booking.totalprice}`);\n    }\n    };"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"firstname\" : \"Jim\",\n    \"lastname\" : \"Brown\",\n    \"totalprice\" : \"11ㅁㅁㅁ1\",\n    \"depositpaid\" : true,\n    \"bookingdates\" : {\n        \"checkin\" : \"2018-01-01\",\n        \"checkout\" : \"2019-01-01\"\n    },\n    \"additionalneeds\" : \"Breakfast\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/booking",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "booking"
-              ]
-            }
-          },
-          "response": []
         }
       ]
     },
@@ -764,7 +507,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"이미 삭제된 예약을 다시 삭제하면 404\", () => {\n  pm.response.to.have.status(404);\n});"
+                  "pm.test(\"[Bug-11] 이미 삭제된 예약을 다시 삭제하면 404\", () => {\n  pm.response.to.have.status(404);\n});"
                 ]
               }
             }

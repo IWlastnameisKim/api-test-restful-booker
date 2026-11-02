@@ -33,7 +33,6 @@ jobs:
 
   regression:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: 코드 가져오기
         uses: actions/checkout@v7
@@ -55,7 +54,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: regression-report
-          path: reports/regression.html
+          path: |
+            reports/regression.html
+            reports/regression.json
 
   data:
     runs-on: ubuntu-latest
