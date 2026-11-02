@@ -1,7 +1,7 @@
 [
   {
     "id": "BKG-POST-001",
-    "case": "정상 생성",
+    "case": "[정상] 모든 필드 정상 생성",
     "purpose": "모든 필드를 정상 값으로 보내면 예약이 생성되는지 확인",
     "expectedStatus": 200,
     "body": {"firstname": "Kim", "lastname": "QA1", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
@@ -23,7 +23,7 @@
   },
   {
     "id": "BKG-POST-004",
-    "case": "가격에 문자열 포함",
+    "case": "[타입] totalprice 문자 섞임",
     "purpose": "숫자와 문자가 섞인 가격으로는 예약 생성이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "Bug-10",
@@ -31,7 +31,7 @@
   },
   {
     "id": "BKG-POST-005",
-    "case": "first name 누락",
+    "case": "[필수값] firstname 누락",
     "purpose": "필수값 firstname이 없으면 400으로 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "Bug-5",
@@ -43,11 +43,12 @@
     "purpose": "무효 기간(checkout ≤ checkin)의 경계인 0박이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "Bug-6",
+    "note": "기간 규칙: checkout > checkin만 유효로 결정",
     "body": {"firstname": "Kim", "lastname": "QA6", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-10-20"}, "additionalneeds": "brunch & liquor"}
   },
   {
     "id": "BKG-POST-007",
-    "case": "체크인 형식 오류",
+    "case": "[날짜] checkin 형식 오류",
     "purpose": "날짜가 아닌 형식의 체크인으로는 예약 생성이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "Bug-7",
@@ -55,7 +56,7 @@
   },
   {
     "id": "BKG-POST-008",
-    "case": "depositpaid 문자열",
+    "case": "[타입] depositpaid 문자열 true",
     "purpose": "boolean 필드에 문자열 \"true\"를 보내면 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "D-1",
@@ -63,10 +64,11 @@
   },
   {
     "id": "BKG-POST-009",
-    "case": "depositpaid 문자열 false값",
+    "case": "[타입] depositpaid 문자열 false",
     "purpose": "boolean 필드에 문자열 \"false\"를 보내면 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "D-2",
+    "note": "보낸 의미와 반대 값(true)으로 저장됨",
     "body": {"firstname": "Kim", "lastname": "QA9", "totalprice": 990, "depositpaid": "false", "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   },
   {
@@ -74,6 +76,7 @@
     "case": "[경계] 가격 0",
     "purpose": "가격 0(무료)으로 예약이 생성되는지 확인",
     "expectedStatus": 200,
+    "note": "가격 0(무료)은 유효로 결정",
     "body": {"firstname": "Kim", "lastname": "QA10", "totalprice": 0, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   },
   {
@@ -104,5 +107,23 @@
     "expectedStatus": 400,
     "knownIssue": "D-3",
     "body": {"firstname": "Kim", "lastname": "QA14", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-02-29", "checkout": "2026-03-05"}, "additionalneeds": "brunch & liquor"}
+  },
+  {
+    "id": "BKG-POST-015",
+    "case": "[경계] firstname 빈 문자열",
+    "purpose": "1글자 바로 아래인 빈 이름이 거절되는지 확인 (빈 이름 불허 결정)",
+    "expectedStatus": 400,
+    "knownIssue": "D-4",
+    "note": "빈 이름 불허 결정 (P-12와 같은 결함)",
+    "body": {"firstname": "", "lastname": "QA15", "totalprice": 990, "depositpaid": true, "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
+  },
+  {
+    "id": "BKG-POST-016",
+    "case": "[타입] depositpaid 빈 문자열",
+    "purpose": "boolean 필드에 빈 문자열을 보내면 거절되는지 확인 (문자열 변환 규칙 확인용)",
+    "expectedStatus": 400,
+    "knownIssue": "D-1",
+    "note": "빈 문자열만 false, 그 외 문자열은 true로 변환",
+    "body": {"firstname": "Kim", "lastname": "QA16", "totalprice": 990, "depositpaid": "", "bookingdates": {"checkin": "2026-10-20", "checkout": "2026-11-01"}, "additionalneeds": "brunch & liquor"}
   }
 ]

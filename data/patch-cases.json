@@ -43,10 +43,10 @@
   },
   {
     "id": "BKG-PATCH-007",
-    "case": "[단일] depositpaid만 false로 수정",
-    "purpose": "depositpaid만 false로 보내면 depositpaid만 바뀌는지 확인",
+    "case": "[단일] depositpaid만 true로 수정",
+    "purpose": "depositpaid만 보내면 depositpaid만 바뀌고 나머지는 유지되는지 확인 (원본 false → true)",
     "expectedStatus": 200,
-    "body": {"depositpaid": false}
+    "body": {"depositpaid": true}
   },
   {
     "id": "BKG-PATCH-008",
@@ -100,6 +100,7 @@
     "purpose": "boolean 필드에 문자열 \"true\"를 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "P-13",
+    "note": "원본 false에서 true로 변환됨 (truthy 규칙)",
     "body": {"depositpaid": "true"}
   },
   {
@@ -108,6 +109,7 @@
     "purpose": "boolean 필드에 문자열 \"false\"를 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "P-13",
+    "note": "보낸 의미와 반대 값(true)으로 저장됨",
     "body": {"depositpaid": "false"}
   },
   {
@@ -116,6 +118,7 @@
     "purpose": "boolean 필드에 숫자 0을 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "P-7",
+    "note": "숫자 0은 false로 변환",
     "body": {"depositpaid": 0}
   },
   {
@@ -148,6 +151,7 @@
     "purpose": "무효 기간(checkout ≤ checkin)의 경계인 0박으로는 수정이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "P-8",
+    "note": "기간 규칙: checkout > checkin만 유효로 결정",
     "body": {"bookingdates": {"checkin": "2026-10-20", "checkout": "2026-10-20"}}
   },
   {
@@ -156,6 +160,7 @@
     "purpose": "checkout만 기존 checkin(2018-01-01)보다 이전으로 보내면 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "P-2",
+    "note": "부분 수정 결함: 보내지 않은 checkin이 깨짐",
     "body": {"bookingdates": {"checkout": "2017-12-31"}}
   },
   {
@@ -204,6 +209,7 @@
     "purpose": "bookingdates에 checkin만 보내면 checkin만 바뀌고 checkout은 유지되는지 확인",
     "expectedStatus": 200,
     "knownIssue": "P-1",
+    "note": "정상 요청에서 보내지 않은 필드가 깨짐",
     "body": {"bookingdates": {"checkin": "2018-06-01"}}
   },
   {
@@ -228,6 +234,7 @@
     "purpose": "firstname에 빈 문자열을 보내면 수정이 거절되는지 확인",
     "expectedStatus": 400,
     "knownIssue": "P-12",
+    "note": "빈 이름 불허 결정",
     "body": {"firstname": ""}
   },
   {
@@ -251,6 +258,7 @@
     "case": "[경계] totalprice 0",
     "purpose": "가격 0(무료)으로 수정되는지 확인",
     "expectedStatus": 200,
+    "note": "가격 0(무료)은 유효로 결정",
     "body": {"totalprice": 0}
   },
   {
@@ -273,5 +281,13 @@
     "purpose": "윤년에만 있는 2월 29일로 수정되는지 확인",
     "expectedStatus": 200,
     "body": {"bookingdates": {"checkin": "2028-02-29", "checkout": "2028-03-01"}}
+  },
+  {
+    "id": "BKG-PATCH-038",
+    "case": "[타입] depositpaid 빈 문자열",
+    "purpose": "boolean 필드에 빈 문자열을 보내면 수정이 거절되는지 확인 (문자열 변환 규칙 확인용)",
+    "expectedStatus": 400,
+    "knownIssue": "P-13",
+    "body": {"depositpaid": ""}
   }
 ]
