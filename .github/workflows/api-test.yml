@@ -29,7 +29,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: smoke-report
-          path: reports/smoke.html
+          path: |
+            reports/smoke.html
+            reports/smoke.json
+            reports/smoke-retry.*
 
   regression:
     runs-on: ubuntu-latest
@@ -57,6 +60,7 @@ jobs:
           path: |
             reports/regression.html
             reports/regression.json
+            reports/regression-retry.*
 
   data:
     runs-on: ubuntu-latest
@@ -84,6 +88,7 @@ jobs:
           path: |
             reports/data.html
             reports/data.json
+            reports/data-retry.*
 
   data-patch:
     runs-on: ubuntu-latest
@@ -111,3 +116,4 @@ jobs:
           path: |
             reports/data-patch.html
             reports/data-patch.json
+            reports/data-patch-retry.*

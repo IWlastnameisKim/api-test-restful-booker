@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test:smoke": "newman run collections/Restful-booker.postman_collection.json -e env/restful-booker.postman_environment.json --folder 01-Setup --folder 02-Flow --folder 04-CleanUp -r cli,htmlextra --reporter-htmlextra-export reports/smoke.html --reporter-htmlextra-logs",
+    "test:smoke": "newman run collections/Restful-booker.postman_collection.json -e env/restful-booker.postman_environment.json --folder 01-Setup --folder 02-Flow --folder 04-CleanUp -r cli,htmlextra,json --reporter-htmlextra-export reports/smoke.html --reporter-htmlextra-logs --reporter-json-export reports/smoke.json --suppress-exit-code && node scripts/check-known-issues.js --report reports/smoke.json",
     "test:regression": "newman run collections/Restful-booker.postman_collection.json -e env/restful-booker.postman_environment.json --folder 01-Setup --folder 03-Regression --folder 04-CleanUp --folder 05-Regression-Delete -r cli,htmlextra,json --reporter-htmlextra-export reports/regression.html --reporter-htmlextra-logs --reporter-json-export reports/regression.json --suppress-exit-code && node scripts/check-known-issues.js --report reports/regression.json --known data/regression-known-issues.json",
     "test:api": "npm run test:smoke && npm run test:regression",
     "test:data": "newman run collections/Restful-booker.postman_collection.json -e env/restful-booker.postman_environment.json --folder 06-Data-Driven -d data/booking-cases.json -r cli,htmlextra,json --reporter-htmlextra-export reports/data.html --reporter-htmlextra-logs --reporter-json-export reports/data.json --suppress-exit-code && node scripts/check-known-issues.js --report reports/data.json --data data/booking-cases.json",

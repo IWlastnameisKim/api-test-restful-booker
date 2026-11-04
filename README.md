@@ -47,7 +47,7 @@ api-test-restful-booker/
  ├─ docs/
  │   └─ Restful-booker_API_테스트케이스.xlsx       # 테스트 케이스 문서 (템플릿 + 데이터셋, 현황, 결함목록)
  ├─ scripts/
- │   ├─ check-known-issues.js                    # 실행 결과를 알려진 결함과 비교해 새 실패만 실패로 판정
+ │   ├─ check-known-issues.js                    # 실행 결과를 알려진 결함과 비교해 새 실패만 실패로 판정 (실패는 재실행해 환경 문제 구분)
  │   └─ build-testcase-doc.js                    # 데이터 파일 + JSON 리포트로 테스트 케이스 문서(xlsx) 생성
  ├─ reports/                                     # 실행 시 생성되는 HTML·JSON 리포트 (Git 제외)
  ├─ package.json
@@ -207,7 +207,7 @@ BKG-PATCH-020(가격 -990)은 음수 분할에서 경계값(-1)과 중복이라 
 | 예약생성_데이터 / 부분수정_데이터 | 데이터 파일 1행 = 케이스 1행. 입력 body, 기대 Status·Response·저장값, 실제 결과, 결과, 결함 ID |
 | 결함목록 | 결함 ID, API, 내용, 관련 케이스, 심각도, 상태 |
 
-- **문서는 손으로 고치지 않고 생성합니다.** `npm run test:data && npm run test:data-patch && npm run docs:testcase`를 실행하면, 데이터 파일(케이스·결함 ID·비고)과 `data/defects.json`(결함 목록), JSON 리포트(실제 Status·저장값·결과)로 문서를 다시 만듭니다. 결과가 knownIssue와 맞지 않으면(NEW_FAIL이나 FIXED?가 남아 있으면) 생성을 멈춥니다.
+- **문서는 손으로 고치지 않고 생성합니다.** `npm run test:data && npm run test:data-patch && npm run docs:testcase`를 실행하면, 데이터 파일(케이스·결함 ID·비고)과 `data/defects.json`(결함 목록), JSON 리포트(실제 Status·저장값·결과)로 문서를 다시 만듭니다. 결과가 knownIssue와 맞지 않으면(NEW_FAIL이나 FIXED?가 남아 있으면) 생성을 멈춥니다. 문서는 1차 실행 리포트로 만들기 때문에, 1차에서 RETRY_OK가 나왔다면 테스트를 다시 실행한 뒤 생성합니다.
 - **케이스 원본은 데이터 파일**입니다. 문서의 ID·케이스·목적·입력·기대 Status는 데이터 파일과 같아야 합니다.
 - 케이스 추가 순서: 데이터 파일에 행 추가 → 실행 (새 행이 실패하면 NEW_FAIL) → 결함 판단 후 `knownIssue` 기입 → `npm run docs:testcase`로 문서 재생성
 
@@ -247,13 +247,16 @@ BKG-PATCH-020(가격 -990)은 음수 분할에서 경계값(-1)과 중복이라 
 
 1. 데이터 파일의 실패 행에 `knownIssue`로 결함 ID를 적습니다. (POST 10행, PATCH 24행) regression은 `data/regression-known-issues.json`에 결함 태그(`[Bug-1]` 등) 5개를 등록하고, 테스트 이름의 태그로 판정합니다.
 2. Newman은 `--suppress-exit-code`로 끝까지 실행하고, 결과를 JSON(`reports/*.json`)으로 저장합니다.
-3. `scripts/check-known-issues.js`가 JSON 리포트와 데이터 파일을 행 단위로 비교해 분류하고, 종료 코드로 최종 판정합니다.
+3. `scripts/check-known-issues.js`가 JSON 리포트와 데이터 파일을 행 단위로 비교해 분류합니다.
+4. NEW_FAIL·SETUP_FAIL이 있으면 **그 부분만 한 번 더 실행**해서, 일시적인 환경 문제인지 확인합니다(아래 "실패 재실행").
+5. 최종 분류로 종료 코드를 정합니다.
 
 | 분류 | 조건 | 판정 | 할 일 |
 | --- | --- | --- | --- |
 | PASS | 표시 없음, 통과 | 통과 | |
 | KNOWN_FAIL | `knownIssue` 있음, 실패 | 통과 (기록만) | |
 | FIXED? | `knownIssue` 있음, **통과** | 통과 + 경고 | 결함이 수정됐는지 확인하고 `knownIssue` 제거, 결함목록 상태를 Fixed로 변경 |
+| RETRY_OK | 1차에 NEW_FAIL·SETUP_FAIL, **재실행에서 예상대로 동작** | 통과 + 경고 | 일시적인 환경 문제로 판단. 같은 케이스에서 반복되면 원인 확인 |
 | NEW_FAIL | 표시 없음, **실패** | **실패** | 새 결함인지, 테스트 문제인지 확인 |
 | SETUP_FAIL | 판정 대상이 아닌 요청(토큰 발급, 예약 생성, 정리)에서 실패 | **실패** | 환경·준비 단계 확인 |
 | NOT_RUN | 행이 실행되지 않음, 또는 반복 횟수가 행 수와 다름 | **실패** | 폴더·데이터 파일 지정 확인 |
@@ -261,6 +264,34 @@ BKG-PATCH-020(가격 -990)은 음수 분할에서 경계값(-1)과 중복이라 
 - 07은 `--targets "PATCH,수정 후 재조회"`로 판정 대상을 지정합니다. 예약 생성이 실패해 재조회가 깨진 경우를 결함으로 착각하지 않도록, 준비 단계 실패는 알려진 결함 행이어도 SETUP_FAIL로 처리합니다.
 - 결함이 수정되어 통과하면 테스트는 그대로 둡니다. `knownIssue`만 지우면 그 행은 일반 케이스가 되어, 이후 다시 실패하면 NEW_FAIL로 잡힙니다. 즉 수정된 결함의 회귀 감시는 데이터 행이 맡습니다.
 - CI에서는 분류 결과가 실행 화면의 Summary 표와 경고·오류 표시(annotation)로 나옵니다.
+- smoke는 알려진 결함 목록 없이(`--known` 생략) 같은 스크립트로 판정합니다. 모든 실패가 NEW_FAIL이고, 재실행 대상이 됩니다.
+
+### 실패 재실행
+
+공용 서버(Restful-booker)는 **10분마다 데이터를 초기화**합니다. 실행 도중 초기화가 끼면, 그 순간 실행 중이던 케이스의 토큰과 예약이 사라져 결함과 무관한 실패가 납니다. 실제로 CI에서 이 때문에 data-patch job이 한 번 실패했고, Re-run에서 통과했습니다.
+
+| 흔적 | 의미 |
+| --- | --- |
+| PATCH 응답이 6~7초 걸림 | 서버가 초기화하는 동안 대기 |
+| PATCH·삭제 403, 재조회 404 | 토큰과 예약이 함께 사라짐 |
+| 다음 행의 bookingid가 20번대로 돌아감 | 데이터가 초기 상태로 돌아감 |
+
+그래서 판정 스크립트가 실패한 부분을 바로 다시 실행하고, 그 결과로 환경 문제인지 로직 문제인지 구분합니다.
+
+```
+1차 실행 (끝까지 실행) → 분류 → NEW_FAIL·SETUP_FAIL이 있으면 → 그 부분만 재실행 → 최종 분류
+```
+
+| 1차 | 재실행 | 판단 | 최종 |
+| --- | --- | --- | --- |
+| NEW_FAIL / SETUP_FAIL | 예상대로 (PASS, KNOWN_FAIL, FIXED?) | 일시적인 환경 문제 | **RETRY_OK** (통과 + 경고) |
+| NEW_FAIL / SETUP_FAIL | 또 실패 | 로직 문제 가능성 | 1차 상태 유지 (**실패**) |
+
+- **재실행 범위**: 데이터 기반(06, 07)은 실패한 행만 다시 실행합니다. 행마다 토큰과 예약을 새로 만들기 때문입니다. smoke·regression은 요청끼리 값(`token`, `bookingid`)을 주고받으므로 처음 실행한 폴더 전체를 다시 실행합니다.
+- **같은 조건으로 재실행**: 첫 실행 리포트에 들어 있는 컬렉션, 환경(`--env-var`로 바꾼 `baseUrl` 포함), 실행한 폴더를 그대로 사용합니다. 그래서 `package.json`에 폴더를 두 번 적을 필요가 없습니다.
+- **재실행하지 않는 경우**: NOT_RUN과 반복 횟수 불일치는 실행 구성의 문제라 다시 돌려도 같으므로 재실행하지 않습니다. `--no-retry`를 붙이면 재실행 없이 1차 결과로만 판정합니다.
+- **결과 확인**: 터미널과 Summary에 `1차 SETUP_FAIL → 재실행 PASS`처럼 두 결과가 함께 나오고, 재실행 리포트는 `reports/<이름>-retry.html`, `-retry.json`에 저장됩니다.
+- **주의**: RETRY_OK는 통과로 처리되므로, 가끔만 재현되는 결함도 경고로만 남을 수 있습니다. 경고가 같은 케이스에서 반복되면 결함 가능성을 확인합니다.
 
 ## 설치
 
@@ -407,10 +438,12 @@ npm run test:api
 
 | 스크립트 | 리포트 |
 | --- | --- |
-| `test:smoke` | `reports/smoke.html` |
-| `test:regression` | `reports/regression.html` |
+| `test:smoke` | `reports/smoke.html`, `reports/smoke.json` |
+| `test:regression` | `reports/regression.html`, `reports/regression.json` |
 | `test:data` | `reports/data.html`, `reports/data.json` |
 | `test:data-patch` | `reports/data-patch.html`, `reports/data-patch.json` |
+
+모든 스크립트는 Newman 실행 뒤 `check-known-issues.js`로 판정하며, 실패를 재실행하면 `reports/<이름>-retry.html`, `-retry.json`이 추가로 생깁니다.
 
 `test:data`와 `test:data-patch`는 `-d` 옵션으로 데이터 파일의 행 수만큼 반복 실행한 뒤, 이어서 `check-known-issues.js`로 판정합니다. Postman 앱의 Runner에서는 데이터 파일 실행이 유료 기능이라, Newman으로 실행합니다.
 
@@ -422,12 +455,13 @@ npm run test:api
 
 | job | 실행 | 설정 |
 | --- | --- | --- |
-| smoke | `npm run test:smoke` | 실패하면 워크플로 실패 |
+| smoke | `npm run test:smoke` | 재실행 후에도 실패가 남으면 워크플로 실패 |
 | regression | `npm run test:regression` | 새 실패가 있으면 워크플로 실패. 알려진 결함 태그(`data/regression-known-issues.json`)의 실패는 Summary에 기록 |
 | data | `npm run test:data` | 새 실패·준비 실패가 있으면 워크플로 실패. 알려진 결함은 Summary에 기록 |
 | data-patch | `npm run test:data-patch` | 위와 같음 |
 
-- 모든 job이 `if: always()`로 테스트가 실패해도 리포트를 Artifacts(`smoke-report`, `regression-report`, `data-report`, `data-patch-report`)로 업로드합니다.
+- 모든 job이 `if: always()`로 테스트가 실패해도 리포트를 Artifacts(`smoke-report`, `regression-report`, `data-report`, `data-patch-report`)로 업로드합니다. 재실행이 있었다면 `-retry` 리포트도 함께 올라갑니다.
+- 재실행으로 통과한 실패(RETRY_OK)는 job을 실패시키지 않고, 실행 화면에 노란 경고로 표시됩니다.
 - `npm ci`와 `package-lock.json`으로 로컬과 CI가 같은 버전으로 실행되며, `setup-node`의 `cache: npm`으로 설치 시간을 줄입니다.
 - 버전은 고정하고, 업데이트는 Dependabot PR로 받아 CI 통과를 확인한 뒤 반영합니다.
 
@@ -537,4 +571,5 @@ data-patch는 요청·스크립트 오류 없이 37행이 모두 실행됩니다
 - [x] 07 폴더 예약 생성 body의 depositpaid를 `false`로 바꿔, 문자열 값이 무시되는지 변환되는지 구분 → 변환으로 확인
 - [x] 07 폴더에 행마다 생성한 예약을 삭제하는 정리 요청 추가
 - [x] 02-Flow 예약 변경 요청에 상태 코드 검증 추가
+- [x] 공용 서버 초기화로 인한 일시적 실패 대응: 실패한 부분만 자동 재실행, 재실행 통과는 RETRY_OK(통과 + 경고)
 - [x] 명세에 없는 요청 헤더 정리 (`bookingid` 헤더, GET의 `Content-Type`·`Cookie`, 예약 생성의 `Cookie`)
