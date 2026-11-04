@@ -262,7 +262,126 @@ BKG-PATCH-020(가격 -990)은 음수 분할에서 경계값(-1)과 중복이라 
 - 결함이 수정되어 통과하면 테스트는 그대로 둡니다. `knownIssue`만 지우면 그 행은 일반 케이스가 되어, 이후 다시 실패하면 NEW_FAIL로 잡힙니다. 즉 수정된 결함의 회귀 감시는 데이터 행이 맡습니다.
 - CI에서는 분류 결과가 실행 화면의 Summary 표와 경고·오류 표시(annotation)로 나옵니다.
 
+## 설치
+
+처음 받은 PC에서 실행하기까지 필요한 것과 설치 순서입니다. 명령은 macOS 터미널(또는 VS Code 터미널) 기준입니다.
+
+| 순서 | 도구 | 용도 | 설치 방법 |
+| --- | --- | --- | --- |
+| 1 | Git | 레포 받기, 변경 관리 | Xcode Command Line Tools |
+| 2 | Node.js (npm 포함) | Newman과 스크립트 실행 | 공식 설치 파일 또는 Homebrew |
+| 3 | 레포 | 컬렉션, 데이터, 스크립트 | `git clone` |
+| 4 | newman, newman-reporter-htmlextra, exceljs | 컬렉션 실행, HTML 리포트, 테스트 케이스 문서 생성 | `npm ci` (레포 안에 설치) |
+| (선택) | Postman 앱 | 컬렉션 편집 | 공식 설치 파일 |
+
+### 1. Git
+
+```bash
+xcode-select --install     # 설치 창이 뜨면 [설치] 선택
+git --version              # 버전이 나오면 완료
+```
+
+처음 커밋하기 전에 작성자 정보를 한 번 등록합니다. 이메일은 GitHub 계정에 등록된 주소를 사용합니다.
+
+```bash
+git config --global user.name "이름"
+git config --global user.email "GitHub 계정 이메일"
+git config --global core.precomposeunicode true   # macOS 한글 파일명이 깨져 보이지 않게
+```
+
+### 2. Node.js (npm 포함)
+
+npm은 Node.js를 설치하면 함께 설치됩니다. CI와 같은 **LTS 버전**을 사용합니다.
+
+방법 A. 공식 설치 파일: [nodejs.org](https://nodejs.org/)에서 LTS `.pkg`를 받아 설치
+
+방법 B. Homebrew
+
+```bash
+# Homebrew가 없으면 먼저 설치
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+brew install node
+```
+
+설치 확인 (터미널을 새로 연 뒤):
+
+```bash
+node -v    # v22.x 처럼 버전이 나오면 완료
+npm -v
+```
+
+### 3. 레포 받기
+
+```bash
+cd ~/Desktop
+git clone https://github.com/IWlastnameisKim/api-test-restful-booker.git
+cd api-test-restful-booker
+```
+
+ZIP으로 받으면 Git 이력이 없어서 commit·push를 할 수 없습니다. `git clone`으로 받습니다.
+
+### 4. 의존성 설치 (newman, htmlextra, exceljs)
+
+```bash
+npm ci
+```
+
+`package-lock.json`에 적힌 버전 그대로 `node_modules/` 폴더에 설치합니다. 이 레포에 필요한 패키지는 `package.json`의 `devDependencies`에 모두 들어 있어서, 하나씩 설치할 필요가 없습니다.
+
+| 패키지 | 용도 |
+| --- | --- |
+| `newman` | Postman 컬렉션을 터미널에서 실행 |
+| `newman-reporter-htmlextra` | `-r htmlextra` HTML 리포트 생성 |
+| `exceljs` | `npm run docs:testcase`로 테스트 케이스 문서(xlsx) 생성 |
+
+`npm ci`와 `npm install`의 차이:
+
+| 명령 | 동작 | 사용 시점 |
+| --- | --- | --- |
+| `npm ci` | `node_modules`를 지우고 lock 파일 버전 그대로 설치. lock 파일을 바꾸지 않음 | 레포를 받은 직후, CI |
+| `npm install` | 범위(`^6.2.3`) 안에서 설치하고 lock 파일을 갱신할 수 있음 | 패키지를 추가하거나 버전을 올릴 때 |
+| `npm install -D 패키지명` | 새 패키지를 `devDependencies`에 추가 | 새 도구가 필요할 때 |
+
+설치 확인:
+
+```bash
+npx newman --version    # 6.x 가 나오면 완료
+```
+
+Newman은 전역(`-g`)으로 설치하지 않습니다. `npm run`과 `npx`가 레포 안의 `node_modules/.bin/newman`을 사용하므로, PC마다 버전이 달라지지 않습니다. 전역 설치한 newman을 쓰려면 htmlextra도 전역으로 설치해야 합니다(`npm install -g newman newman-reporter-htmlextra`). 전역 newman은 레포 안의 리포터를 찾지 못하기 때문입니다.
+
+### 5. 동작 확인
+
+```bash
+npm run test:smoke
+open reports/smoke.html    # 브라우저에서 리포트 열기
+```
+
+터미널에 요청별 결과가 나오고 `reports/smoke.html`이 생기면 설치가 끝난 것입니다. `reports/`는 실행할 때마다 다시 만들어지므로 Git에 올리지 않습니다(`.gitignore`).
+
+### (선택) Postman 앱
+
+컬렉션을 수정할 때만 필요합니다. 실행은 Newman만으로 됩니다.
+
+1. [postman.com/downloads](https://www.postman.com/downloads/)에서 설치 후 로그인 (같은 계정이면 워크스페이스가 동기화됨)
+2. 동기화되지 않으면 Import로 `collections/`, `env/` 파일을 불러옴
+3. 수정한 뒤에는 컬렉션 `...` → Export(v2.1) → `collections/Restful-booker.postman_collection.json`에 덮어쓰고, VS Code에서 diff를 확인한 뒤 커밋
+
+### 설치 중 자주 나는 문제
+
+| 증상 | 원인 | 해결 |
+| --- | --- | --- |
+| `command not found: node` | 설치 직후 터미널이 이전 PATH를 사용 | 터미널(VS Code)을 완전히 닫고 다시 열기 |
+| `command not found: newman` | 전역 설치가 없음 (정상) | `npx newman ...` 또는 `npm run ...`으로 실행 |
+| `npm ci` 실행 시 lock 파일 관련 오류 | `package.json`과 `package-lock.json`이 맞지 않음 | `npm install`로 lock 파일을 갱신하고 함께 커밋 |
+| `Cannot find module 'exceljs'` 등 | 의존성 미설치 | `npm ci` |
+| `newman: could not find "htmlextra" reporter` | 전역 newman으로 실행 | `npm run ...`으로 실행하거나 htmlextra도 전역 설치 |
+| HTML 리포트 화면이 깨짐 | htmlextra 리포트가 CDN에서 스타일을 불러옴 (오프라인) | 인터넷 연결 후 열기. 내용은 `reports/*.json`에도 있음 |
+
 ## 실행 방법
+
+설치는 위 [설치](#설치)를 참고합니다.
 
 ```bash
 # 의존성 설치 (package-lock.json의 버전 그대로)
