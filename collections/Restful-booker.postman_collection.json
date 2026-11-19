@@ -844,6 +844,129 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "08-Service-Chain",
+      "item": [
+        {
+          "name": "① 예약 생성",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const created = pm.response.code === 201;\n\npm.test(\"예약 생성 201\", () => {\n  pm.response.to.have.status(201);\n});\n\nif (created) {\n  pm.test(\"[Schema] 예약 생성 응답 구조\", () => {\n    pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.reservation\")));\n  });\n\n  const body = pm.response.json();\n  const sent = pm.variables.replaceIn(pm.request.body.raw);   // {{marker}} 등을 실제 값으로 바꾼 body\n\n  pm.test(\"응답이 보낸 값과 같음\", () => {\n    const { reservationId, status, ...rest } = body;           // 서비스가 붙인 두 필드를 빼고 비교\n    pm.expect(rest).to.eql(JSON.parse(sent));\n  });\n\n  pm.variables.set(\"reservationId\", body.reservationId);\n  pm.variables.set(\"sentReservation\", sent);\n} else {\n  pm.variables.unset(\"reservationId\");\n  pm.variables.unset(\"sentReservation\");\n  console.log(\"예약 생성 실패: reservationId 저장 안 함\", pm.response.code, pm.response.text());\n}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const marker = `SVC-${Date.now()}`;               // 실행할 때마다 달라지는 값\npm.variables.set(\"marker\", marker);\n// body의 lastName을 \"{{marker}}\"로 바꿈"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"guest\": { \"firstName\": \"InWon2\", \"lastName\": \"Kim\" },\n  \"stay\": { \"checkIn\": \"2026-12-01\", \"checkOut\": \"2026-12-03\" },\n  \"price\": 50000,\n  \"deposit\": true,\n  \"request\": \"Breakfast\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{serviceUrl}}/reservations",
+              "host": [
+                "{{serviceUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "② 예약 API 확인",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"[교차] 예약 API에 저장됨\", () => {\n  pm.response.to.have.status(200);\n});\n\nif (pm.response.code === 200) {\n  const sent = JSON.parse(pm.variables.get(\"sentReservation\"));\n  const saved = pm.response.json();\n\n  pm.test(\"[교차] 이름이 매핑대로 저장됨\", () => {\n    pm.expect(saved.firstname, \"guest.firstName → firstname\").to.eql(sent.guest.firstName);\n    // ...\n  });\n  // ...\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{reservationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{reservationId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "④ 서비스로 조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"서비스 조회 200\", () => {\n  pm.response.to.have.status(200);\n});\n\nif (pm.response.code === 200) {\n  pm.test(\"[Schema] 예약 조회 응답 구조\", () => {\n    pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.reservation\")));\n  });\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{serviceUrl}}/reservations/{{reservationId}}",
+              "host": [
+                "{{serviceUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "{{reservationId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "event": [
@@ -852,7 +975,87 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "// ===== 응답 스키마 정의 (모든 요청 전에 실행) =====\n// 명세(apidoc) 기준. 요청의 After response에서\n//   pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.booking\")))\n// 처럼 꺼내 쓴다. 명세가 바뀌면 여기 한 곳만 고친다.\n\nconst date = { type: \"string\", pattern: \"^\\\\d{4}-\\\\d{2}-\\\\d{2}$\" };   // YYYY-MM-DD\n\n// 예약 객체: GET /booking/{id}, PATCH /booking/{id} 응답\nconst booking = {\n    type: \"object\",\n    required: [\"firstname\", \"lastname\", \"totalprice\", \"depositpaid\", \"bookingdates\"],\n    properties: {\n        firstname:   { type: \"string\", minLength: 1 },   // 빈 이름 불허 (P-12 결정)\n        lastname:    { type: \"string\", minLength: 1 },\n        totalprice:  { type: \"number\" },\n        depositpaid: { type: \"boolean\" },\n        bookingdates: {\n            type: \"object\",\n            required: [\"checkin\", \"checkout\"],\n            properties: { checkin: date, checkout: date },\n            additionalProperties: false\n        },\n        additionalneeds: { type: \"string\" }      // 명세상 optional\n    },\n    additionalProperties: false\n};\n\n// 예약 생성 응답: POST /booking\nconst bookingCreated = {\n    type: \"object\",\n    required: [\"bookingid\", \"booking\"],\n    properties: { bookingid: { type: \"number\" }, booking },\n    additionalProperties: false\n};\n\n// 토큰 발급 성공 응답: POST /auth\nconst auth = {\n    type: \"object\",\n    required: [\"token\"],\n    properties: { token: { type: \"string\" } },\n    additionalProperties: false\n};\n\npm.variables.set(\"schema.booking\", JSON.stringify(booking));\npm.variables.set(\"schema.bookingCreated\", JSON.stringify(bookingCreated));\npm.variables.set(\"schema.auth\", JSON.stringify(auth));"
+          "// ===== 응답 스키마 정의 (모든 요청 전에 실행) =====",
+          "// 명세(apidoc) 기준. 요청의 After response에서",
+          "//   pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.booking\")))",
+          "// 처럼 꺼내 쓴다. 명세가 바뀌면 여기 한 곳만 고친다.",
+          "",
+          "const date = { type: \"string\", pattern: \"^\\\\d{4}-\\\\d{2}-\\\\d{2}$\" };   // YYYY-MM-DD",
+          "",
+          "// 예약 객체: GET /booking/{id}, PATCH /booking/{id} 응답",
+          "const booking = {",
+          "    type: \"object\",",
+          "    required: [\"firstname\", \"lastname\", \"totalprice\", \"depositpaid\", \"bookingdates\"],",
+          "    properties: {",
+          "        firstname:   { type: \"string\", minLength: 1 },   // 빈 이름 불허 (P-12 결정)",
+          "        lastname:    { type: \"string\", minLength: 1 },",
+          "        totalprice:  { type: \"number\" },",
+          "        depositpaid: { type: \"boolean\" },",
+          "        bookingdates: {",
+          "            type: \"object\",",
+          "            required: [\"checkin\", \"checkout\"],",
+          "            properties: { checkin: date, checkout: date },",
+          "            additionalProperties: false",
+          "        },",
+          "        additionalneeds: { type: \"string\" }      // 명세상 optional",
+          "    },",
+          "    additionalProperties: false",
+          "};",
+          "",
+          "// 예약 생성 응답: POST /booking",
+          "const bookingCreated = {",
+          "    type: \"object\",",
+          "    required: [\"bookingid\", \"booking\"],",
+          "    properties: { bookingid: { type: \"number\" }, booking },",
+          "    additionalProperties: false",
+          "};",
+          "",
+          "// 토큰 발급 성공 응답: POST /auth",
+          "const auth = {",
+          "    type: \"object\",",
+          "    required: [\"token\"],",
+          "    properties: { token: { type: \"string\" } },",
+          "    additionalProperties: false",
+          "};",
+          "",
+          "pm.variables.set(\"schema.booking\", JSON.stringify(booking));",
+          "pm.variables.set(\"schema.bookingCreated\", JSON.stringify(bookingCreated));",
+          "pm.variables.set(\"schema.auth\", JSON.stringify(auth));",
+          "",
+          "",
+          "// ----- reservation-service -----",
+          "const name = { type: \"string\", minLength: 1 };",
+          "",
+          "const guest = {",
+          "  type: \"object\",",
+          "  required: [\"firstName\", \"lastName\"],",
+          "  properties: { firstName: name, lastName: name },",
+          "  additionalProperties: false",
+          "};",
+          "",
+          "const stay = {",
+          "  type: \"object\",",
+          "  required: [\"checkIn\", \"checkOut\"],",
+          "  properties: { checkIn: date, checkOut: date },   // 기존 date 재사용",
+          "  additionalProperties: false",
+          "};",
+          "",
+          "const reservation = {                              // POST 201, GET 200 공통",
+          "  type: \"object\",",
+          "  required: [\"reservationId\", \"status\", \"guest\", \"stay\", \"price\", \"deposit\"],",
+          "  properties: {",
+          "    reservationId: { type: \"integer\" },",
+          "    status: { enum: [\"CONFIRMED\"] },",
+          "    guest,",
+          "    stay,",
+          "    price: { type: \"integer\", minimum: 0 },",
+          "    deposit: { type: \"boolean\" },",
+          "    request: { type: \"string\" }                    // 선택: required에 없음",
+          "  },",
+          "  additionalProperties: false",
+          "};",
+          "",
+          "pm.variables.set(\"schema.reservation\", JSON.stringify(reservation));"
         ]
       }
     },

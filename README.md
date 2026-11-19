@@ -43,7 +43,8 @@ api-test-restful-booker/
  │   ├─ regression-known-issues.json             # regression의 알려진 결함 태그 목록
  │   └─ defects.json                             # 결함 목록 (테스트 케이스 문서의 결함목록 시트 원본)
  ├─ env/
- │   └─ restful-booker.postman_environment.json  # baseUrl, username, password, token, bookingid
+ │   ├─ restful-booker.postman_environment.json  # 공용 서버: baseUrl, username, password, token, bookingid
+│   └─ restful-booker-local.postman_environment.json  # 로컬 구성: baseUrl(3001), serviceUrl(3002) (08 폴더용)
  ├─ docs/
  │   └─ Restful-booker_API_테스트케이스.xlsx       # 테스트 케이스 문서 (템플릿 + 데이터셋, 현황, 결함목록)
  ├─ scripts/
@@ -67,6 +68,7 @@ api-test-restful-booker/
 | 05-Regression-Delete | 회귀 테스트 | 이미 삭제된 예약 재삭제(Bug-11). 삭제 이후에 실행되어야 해서 CleanUp 뒤에 위치 |
 | 06-Data-Driven | 데이터 기반 테스트 | `POST /booking` 요청 1개를 `data/booking-cases.json`의 행 수만큼 반복 |
 | 07-Data-Driven-Patch | 데이터 기반 테스트 | 토큰 발급 → 예약 생성 → `PATCH` → 재조회 → 삭제 5개 요청을 `data/patch-cases.json`의 행 수만큼 반복 |
+| 08-Service-Chain | 서버 간 통신 테스트 | [reservation-service](https://github.com/IWlastnameisKim/reservation-service)를 호출하고, 서비스가 예약 API에 값을 제대로 전달했는지 예약 API를 직접 조회해 확인 (진행 중) |
 
 ### 실행 그룹
 
@@ -195,6 +197,58 @@ BKG-PATCH-020(가격 -990)은 음수 분할에서 경계값(-1)과 중복이라 
 
 - 가격 0(무료)은 유효로, 숙박 기간은 `checkout > checkin`(최소 1박)만 유효로, 빈 이름은 무효로 정했습니다. 명세에 없는 규칙이라 결정 내용을 기록해 둡니다.
 - 경계 바로 바깥 값(-1, 0박)도 그대로 저장되어, 서버에 경계 검증 자체가 없음을 확인했습니다.
+
+## 서버 간 통신 테스트 (08)
+
+서비스가 다른 서비스를 호출하는 구조(e-커머스의 주문 → 재고처럼)를 테스트합니다. 테스트 대상으로 별도 레포의 [reservation-service](https://github.com/IWlastnameisKim/reservation-service)를 사용합니다. 이 서비스는 예약 요청을 받아 검증·변환한 뒤 Restful-booker(예약 API)를 호출합니다.
+
+```
+테스트 ── {{serviceUrl}} ──→ reservation-service (3002) ──→ 예약 API (3001)
+   └──── {{baseUrl}} ──────────────────────────────────→ 예약 API (3001)   교차 검증
+```
+
+### 왜 예약 API를 직접 조회하나
+
+테스트는 서비스만 호출합니다. 그런데 서비스 응답(201, 보낸 값과 같은 body)만 보면, 서비스가 예약 API에 값을 잘못 넘기고 응답만 그럴듯하게 만든 경우를 잡을 수 없습니다. 그래서 **서비스를 거치지 않고 예약 API를 직접 조회해(교차 검증) 실제로 저장된 값을 필드 매핑대로 비교**합니다. 07에서 PATCH 뒤 재조회한 것과 같은 원리입니다.
+
+| reservation-service | 예약 API |
+| --- | --- |
+| `reservationId` | `bookingid` |
+| `guest.firstName` / `guest.lastName` | `firstname` / `lastname` |
+| `stay.checkIn` / `stay.checkOut` | `bookingdates.checkin` / `bookingdates.checkout` |
+| `price` | `totalprice` |
+| `deposit` | `depositpaid` |
+| `request` (선택) | `additionalneeds` |
+
+### 요청 흐름
+
+| 순서 | 요청 | 확인 | 상태 |
+| --- | --- | --- | --- |
+| ① 예약 생성 | `POST {{serviceUrl}}/reservations` | 201, 응답 스키마(`schema.reservation`), 응답이 보낸 값과 같음. `reservationId`·보낸 body 저장 | 완료 |
+| ② 예약 API 확인 | `GET {{baseUrl}}/booking/{{reservationId}}` | 200, 보낸 값이 필드 매핑대로 저장됐는지 | 이름만 비교 (나머지 필드 진행 중) |
+| ③ 검색으로 찾기 | `GET {{baseUrl}}/booking?lastname={{marker}}` | 고유값으로 검색해 ①의 예약이 찾아지는지 | 예정 |
+| ④ 서비스로 조회 | `GET {{serviceUrl}}/reservations/{{reservationId}}` | 200, 응답 스키마 | 완료 |
+
+### 설계 포인트
+
+- **같은 예약 API를 봐야 함**: 교차 검증의 `baseUrl`은 서비스가 호출하는 예약 API와 같은 주소여야 합니다. 그래서 공용 서버용 Environment와 별도로 로컬 구성용 `restful-booker-local`(baseUrl 3001, serviceUrl 3002)을 둡니다. 기존 Environment에는 `serviceUrl`이 없어서, 잘못 고르면 요청이 바로 실패합니다.
+- **스키마는 서비스별로**: 같은 예약 데이터라도 서비스마다 모양이 다르므로 `schema.reservation`을 따로 정의했습니다. 이름·날짜 조각(`name`, `guest`, `stay`)을 나눠 조립하고, 기존 날짜 규칙(`date`)을 재사용합니다. `status`는 명세의 상태 값 목록(`enum`), `request`는 선택 필드라 `required`에서 제외합니다.
+- **"호출하지 않았다"의 확인 (예정)**: 서비스가 거절한 요청(400)은 예약 API를 호출하지 않아야 합니다. 테스트가 만든 고유값(`SVC-<시각>`)을 이름에 넣고 예약 API에서 검색해 0건인지 확인합니다. 0건이 "호출 안 함"의 증거가 되려면, 같은 검색으로 정상 예약이 찾아지는지(③)를 먼저 확인해야 합니다.
+
+### 실행
+
+예약 API와 reservation-service를 먼저 띄운 뒤 실행합니다. 이 폴더는 두 서버가 필요해서 아직 CI에 넣지 않았습니다.
+
+```bash
+# 터미널 1: 예약 API
+cd ~/Desktop/restful-booker && npm start
+
+# 터미널 2: reservation-service (.env 설정은 서비스 README 참고)
+cd ~/Desktop/reservation-service && npm start
+
+# 터미널 3: 테스트
+npm run test:service
+```
 
 ## 테스트 케이스 문서
 
@@ -432,6 +486,9 @@ npm run test:data-patch
 
 # smoke + regression (smoke 성공 시 regression 이어서 실행)
 npm run test:api
+
+# 서버 간 통신 (예약 API와 reservation-service를 먼저 실행)
+npm run test:service
 ```
 
 각 스크립트는 `newman run`에 `--folder`로 실행 그룹을 지정하고, 터미널 출력과 HTML 리포트를 함께 생성합니다.
@@ -442,6 +499,7 @@ npm run test:api
 | `test:regression` | `reports/regression.html`, `reports/regression.json` |
 | `test:data` | `reports/data.html`, `reports/data.json` |
 | `test:data-patch` | `reports/data-patch.html`, `reports/data-patch.json` |
+| `test:service` | `reports/service.html`, `reports/service.json` |
 
 모든 스크립트는 Newman 실행 뒤 `check-known-issues.js`로 판정하며, 실패를 재실행하면 `reports/<이름>-retry.html`, `-retry.json`이 추가로 생깁니다.
 
@@ -573,3 +631,9 @@ data-patch는 요청·스크립트 오류 없이 37행이 모두 실행됩니다
 - [x] 02-Flow 예약 변경 요청에 상태 코드 검증 추가
 - [x] 공용 서버 초기화로 인한 일시적 실패 대응: 실패한 부분만 자동 재실행, 재실행 통과는 RETRY_OK(통과 + 경고)
 - [x] 명세에 없는 요청 헤더 정리 (`bookingid` 헤더, GET의 `Content-Type`·`Cookie`, 예약 생성의 `Cookie`)
+- [x] 서버 간 통신 테스트 구성: 테스트 대상 reservation-service(별도 레포), 로컬 구성용 Environment, 서비스 응답 스키마, 생성·교차 검증·조회 요청
+- [ ] 08 ② 교차 검증의 나머지 필드 매핑 비교 (날짜, 가격, 보증금, 요청사항)
+- [ ] 08 ③ 고유값 검색으로 생성한 예약 찾기, 거절 케이스(400)에서 예약 API 미호출 확인
+- [ ] 08 서비스 요청의 경계값·동등 분할, 타입 오류, 필수 값 누락 케이스
+- [ ] 예약 API 대신 호출을 기록하는 mock 서버로 미호출·오류 처리(502·503·504) 확인
+- [ ] CI에서 예약 API와 reservation-service를 띄워 08 폴더 실행
