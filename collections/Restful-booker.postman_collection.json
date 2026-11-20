@@ -856,7 +856,34 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const created = pm.response.code === 201;\n\npm.test(\"예약 생성 201\", () => {\n  pm.response.to.have.status(201);\n});\n\nif (created) {\n  pm.test(\"[Schema] 예약 생성 응답 구조\", () => {\n    pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.reservation\")));\n  });\n\n  const body = pm.response.json();\n  const sent = pm.variables.replaceIn(pm.request.body.raw);   // {{marker}} 등을 실제 값으로 바꾼 body\n\n  pm.test(\"응답이 보낸 값과 같음\", () => {\n    const { reservationId, status, ...rest } = body;           // 서비스가 붙인 두 필드를 빼고 비교\n    pm.expect(rest).to.eql(JSON.parse(sent));\n  });\n\n  pm.variables.set(\"reservationId\", body.reservationId);\n  pm.variables.set(\"sentReservation\", sent);\n} else {\n  pm.variables.unset(\"reservationId\");\n  pm.variables.unset(\"sentReservation\");\n  console.log(\"예약 생성 실패: reservationId 저장 안 함\", pm.response.code, pm.response.text());\n}"
+                  "const created = pm.response.code === 201;",
+                  "",
+                  "pm.test(\"예약 생성 201\", () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "",
+                  "if (created) {",
+                  "  pm.test(\"[Schema] 예약 생성 응답 구조\", () => {",
+                  "    pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.reservation\")));",
+                  "  });",
+                  "",
+                  "const res = pm.response.json();",
+                  "const sentString = pm.variables.replaceIn(pm.request.body.raw);   // 보낸 body (문자열), {{marker}} 등을 실제 값으로 바꾼 것",
+                  "const sentObject = JSON.parse(sentString);                         // 보낸 body (객체)  ",
+                  "",
+                  "  pm.test(\"응답이 보낸 값과 같음\", () => {",
+                  "    const { reservationId, status, ...rest } = res;           // 서비스가 붙인 두 필드를 빼고 비교",
+                  "    pm.expect(rest).to.eql(sentObject);",
+                  "  });",
+                  "",
+                  "  pm.variables.set(\"reservationId\", res.reservationId);",
+                  "  pm.variables.set(\"sentReservation\", sentString);",
+                  "} else {",
+                  "  pm.variables.unset(\"reservationId\");",
+                  "  pm.variables.unset(\"sentReservation\");",
+                  "  console.log(\"예약 생성 실패: reservationId 저장 안 함\", pm.response.code, pm.response.text());",
+                  "}"
                 ]
               }
             },
@@ -865,7 +892,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const marker = `SVC-${Date.now()}`;               // 실행할 때마다 달라지는 값\npm.variables.set(\"marker\", marker);\n// body의 lastName을 \"{{marker}}\"로 바꿈"
+                  "const marker = `SVC-${Date.now()}`;               // 실행할 때마다 달라지는 값",
+                  "pm.variables.set(\"marker\", marker);",
+                  "// body의 lastName을 \"{{marker}}\"로 바꿈"
                 ]
               }
             }
@@ -902,7 +931,38 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"[교차] 예약 API에 저장됨\", () => {\n  pm.response.to.have.status(200);\n});\n\nif (pm.response.code === 200) {\n  const sent = JSON.parse(pm.variables.get(\"sentReservation\"));\n  const saved = pm.response.json();\n\n  pm.test(\"[교차] 이름이 매핑대로 저장됨\", () => {\n    pm.expect(saved.firstname, \"guest.firstName → firstname\").to.eql(sent.guest.firstName);\n    // ...\n  });\n  // ...\n}"
+                  "pm.test(\"[교차] 예약 API에 저장됨\", () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const sentObject = JSON.parse(pm.variables.get(\"sentReservation\"));",
+                  "    const saved = pm.response.json();   ",
+                  "",
+                  "  // [매핑 이름, 보낸 값, 저장된 값]  ← README의 필드 대응표와 같은 내용",
+                  "  const fields = [",
+                  "    [\"guest.firstName → firstname\",              sentObject.guest.firstName, saved.firstname],",
+                  "    [\"guest.lastName → lastname\",                sentObject.guest.lastName,  saved.lastname],",
+                  "    [\"stay.checkIn → bookingdates.checkin\",      sentObject.stay.checkIn,    saved.bookingdates.checkin],",
+                  "    [\"stay.checkOut → bookingdates.checkout\",    sentObject.stay.checkOut,   saved.bookingdates.checkout],",
+                  "    [\"price → totalprice\",                       sentObject.price,           saved.totalprice],",
+                  "    [\"deposit → depositpaid\",                    sentObject.deposit,         saved.depositpaid],",
+                  "    [\"request → additionalneeds\",                sentObject.request,         saved.additionalneeds],   // 선택 필드: 안 보냈으면 둘 다 undefined",
+                  "",
+                  "  ];",
+                  "",
+                  "  // 통과·실패와 상관없이 비교표를 남김 (다른 필드는 ✗ 표시)",
+                  "  console.log(\"[교차] 보낸 값 / 저장된 값\\n\" + fields.map(([name, a, b]) =>",
+                  "    `${JSON.stringify(a) === JSON.stringify(b) ? \"  \" : \"✗ \"}${name}: 보냄 ${JSON.stringify(a)} / 저장 ${JSON.stringify(b)}`",
+                  "  ).join(\"\\n\"));",
+                  "",
+                  "  // 필드마다 테스트 하나씩",
+                  "  for (const [name, a, b] of fields) {",
+                  "    pm.test(`[교차] ${name}`, () => {",
+                  "      pm.expect(b, name).to.eql(a);",
+                  "    });",
+                  "  }",
+                  "}"
                 ]
               }
             }
