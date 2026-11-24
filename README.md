@@ -68,7 +68,7 @@ api-test-restful-booker/
 | 05-Regression-Delete | 회귀 테스트 | 이미 삭제된 예약 재삭제(Bug-11). 삭제 이후에 실행되어야 해서 CleanUp 뒤에 위치 |
 | 06-Data-Driven | 데이터 기반 테스트 | `POST /booking` 요청 1개를 `data/booking-cases.json`의 행 수만큼 반복 |
 | 07-Data-Driven-Patch | 데이터 기반 테스트 | 토큰 발급 → 예약 생성 → `PATCH` → 재조회 → 삭제 5개 요청을 `data/patch-cases.json`의 행 수만큼 반복 |
-| 08-Service-Chain | 서버 간 통신 테스트 | [reservation-service](https://github.com/IWlastnameisKim/reservation-service)를 호출하고, 서비스가 예약 API에 값을 제대로 전달했는지 예약 API를 직접 조회해 필드 매핑대로 확인 (검색·거절 케이스 진행 중) |
+| 08-Service-Chain | 서버 간 통신 테스트 | [reservation-service](https://github.com/IWlastnameisKim/reservation-service)를 호출하고, 서비스가 예약 API에 값을 제대로 전달했는지 예약 API를 직접 조회해 필드 매핑대로 확인 (거절 케이스 진행 중) |
 
 ### 실행 그룹
 
@@ -226,7 +226,7 @@ BKG-PATCH-020(가격 -990)은 음수 분할에서 경계값(-1)과 중복이라 
 | --- | --- | --- | --- |
 | ① 예약 생성 | `POST {{serviceUrl}}/reservations` | 201, 응답 스키마(`schema.reservation`), 응답이 보낸 값과 같음. `reservationId`·보낸 body 저장 | 완료 |
 | ② 예약 API 확인 | `GET {{baseUrl}}/booking/{{reservationId}}` | 200, 보낸 값이 필드 매핑 7개대로 저장됐는지 (필드마다 테스트 1개) | 완료 |
-| ③ 검색으로 찾기 | `GET {{baseUrl}}/booking?lastname={{marker}}` | 고유값으로 검색해 ①의 예약이 찾아지는지 | 예정 |
+| ③ 검색으로 찾기 | `GET {{baseUrl}}/booking?lastname={{marker}}` | 200, ①이 `lastName`에 넣은 고유값으로 검색하면 ①의 예약이 나오고 정확히 1건인지 | 완료 |
 | ④ 서비스로 조회 | `GET {{serviceUrl}}/reservations/{{reservationId}}` | 200, 응답 스키마 | 완료 |
 
 ### 설계 포인트
@@ -243,7 +243,9 @@ BKG-PATCH-020(가격 -990)은 음수 분할에서 경계값(-1)과 중복이라 
 
 - **선택 필드는 두 경우 모두 확인**: `request`를 보내지 않으면 서비스는 `additionalneeds`를 보내지 않아야 하므로, 기대값은 `undefined`끼리 같음입니다. 조건문 없이 같은 행으로 두 경우를 판정하지만, 필드 이름에 오타가 있으면 "안 보낸 경우"에서는 `undefined`끼리 같아 통과해 버립니다. 그래서 `request`가 있는 body와 없는 body로 각각 실행해 확인했습니다.
 - **변수 이름 규칙**: 같은 데이터가 한 스크립트에서 두 형태로 쓰일 때는 형태를 이름에 붙입니다(`sentString`: 보낸 body 문자열, `sentObject`: 객체). 요청과 응답이 함께 나오는 스크립트에서는 `body` 대신 `res`(받은 응답), `saved`(예약 API에 저장된 값)처럼 출처가 드러나게 짓습니다. 다른 요청으로 넘기는 값은 Postman 변수 `sentReservation`에 문자열로 담습니다.
-- **"호출하지 않았다"의 확인 (예정)**: 서비스가 거절한 요청(400)은 예약 API를 호출하지 않아야 합니다. 테스트가 만든 고유값(`SVC-<시각>`)을 이름에 넣고 예약 API에서 검색해 0건인지 확인합니다. 0건이 "호출 안 함"의 증거가 되려면, 같은 검색으로 정상 예약이 찾아지는지(③)를 먼저 확인해야 합니다.
+- **고유값으로 검색 (③)**: ①의 Before request가 실행마다 고유값(`marker = SVC-<시각>`)을 만들고 body의 `lastName`에 넣습니다(`{{marker}}`). ①은 `pm.variables.replaceIn`으로 치환된 body를 저장하므로 ②의 비교에도 실제 값이 쓰입니다. ③은 이 값으로 예약 API를 검색해 결과의 `bookingid` 목록에 `reservationId`가 있는지, 정확히 1건인지 확인합니다. 건수까지 보는 이유는 검색 조건이 무시되고 전체 목록이 와도 "포함됨"은 통과하기 때문입니다. 변수에서 꺼낸 id는 문자열일 수 있어 숫자로 맞춰 비교합니다.
+- **검색이 "없음"도 잡는지 확인**: ①의 `lastName`을 고유값이 아닌 값으로 바꿔 실행하면, ②는 통과(보낸 대로 저장됨)하고 ③은 `expected [] to include ...`로 실패했습니다. 고유값이 저장되면 찾아지고, 저장되지 않으면 0건이라는 두 방향을 모두 확인한 것입니다.
+- **"호출하지 않았다"의 확인 (다음 단계)**: 서비스가 거절한 요청(400)은 예약 API를 호출하지 않아야 합니다. 거절 요청에 별도 고유값(`REJ-<시각>`)을 넣고, 같은 방식으로 검색해 0건인지 확인합니다. ③에서 같은 검색이 정상 예약을 찾는다는 것을 먼저 확인했기 때문에, 0건을 "예약 API에 저장되지 않음"의 근거로 쓸 수 있습니다.
 
 ### 실행
 
@@ -541,7 +543,7 @@ npm run test:service
 | regression | 9 | 12 | 5 | 알려진 결함 5건 (KNOWN_FAIL 5, NEW_FAIL 0) |
 | data | 16 (iterations 16) | 31 | 12 | PASS 6, KNOWN_FAIL 10, NEW_FAIL 0 (POST-007, 015는 스키마 위반 포함) |
 | data-patch | 185 (iterations 37) | 370 | 66 | PASS 13, KNOWN_FAIL 24, NEW_FAIL 0 (스키마 위반 12행 × PATCH·재조회 2곳 포함) |
-| service | 3 | 13 | 0 | 모두 통과 (로컬 구성: 예약 API + reservation-service). `request`를 뺀 body로도 13개 통과 |
+| service | 4 | 16 | 0 | 모두 통과 (로컬 구성: 예약 API + reservation-service). ① 3, ② 8, ③ 3, ④ 2 |
 
 regression의 실패 5건은 모두 **알려진 결함에 대한 회귀 테스트**입니다(Bug-1, 4, 8, 9, 11). 통과하는 7건은 Setup의 토큰 발급·예약 생성과 각 스키마 검증, `[Bug-1] 로그인 실패 시 토큰 없음`, CleanUp의 삭제와 삭제 후 조회입니다.
 결함이 수정되면 해당 테스트가 PASS로 바뀌고, 다시 FAIL이 되면 결함이 재발한 것으로 판단합니다.
@@ -644,7 +646,8 @@ data-patch는 요청·스크립트 오류 없이 37행이 모두 실행됩니다
 - [x] 명세에 없는 요청 헤더 정리 (`bookingid` 헤더, GET의 `Content-Type`·`Cookie`, 예약 생성의 `Cookie`)
 - [x] 서버 간 통신 테스트 구성: 테스트 대상 reservation-service(별도 레포), 로컬 구성용 Environment, 서비스 응답 스키마, 생성·교차 검증·조회 요청
 - [x] 08 ② 교차 검증: 필드 매핑 7개를 표 하나로 정의해 비교 로그와 필드별 테스트 생성, 선택 필드(`request`)는 보낸 경우와 안 보낸 경우 모두 확인
-- [ ] 08 ③ 고유값 검색으로 생성한 예약 찾기, 거절 케이스(400)에서 예약 API 미호출 확인
+- [x] 08 ③ 고유값 검색으로 생성한 예약 찾기 (포함 여부와 건수), 고유값이 저장되지 않으면 0건인지 확인
+- [ ] 08 거절 케이스(400)에서 예약 API 미호출 확인 (거절 요청 고유값 검색 0건)
 - [ ] 08 서비스 요청의 경계값·동등 분할, 타입 오류, 필수 값 누락 케이스
 - [ ] 예약 API 대신 호출을 기록하는 mock 서버로 미호출·오류 처리(502·503·504) 확인
 - [ ] CI에서 예약 API와 reservation-service를 띄워 08 폴더 실행
