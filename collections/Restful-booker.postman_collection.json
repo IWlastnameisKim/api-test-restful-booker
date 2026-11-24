@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "cbbc6334-6f2c-4186-9b3a-9b57e4fc97d7",
+    "_postman_id": "7ddcfe96-9c29-490a-9598-fb5359b1a7cd",
     "name": "Restful-booker",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "18734599"
@@ -115,15 +115,6 @@
                 "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingid}}",
               "host": [
@@ -206,15 +197,6 @@
                 "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingid}}",
               "host": [
@@ -340,15 +322,6 @@
                 "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/booking?checkin=zz",
               "host": [
@@ -389,15 +362,6 @@
                 "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/booking?checkin=zz",
               "host": [
@@ -781,15 +745,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingid}}",
               "host": [
@@ -856,34 +811,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const created = pm.response.code === 201;",
-                  "",
-                  "pm.test(\"예약 생성 201\", () => {",
-                  "  pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "",
-                  "if (created) {",
-                  "  pm.test(\"[Schema] 예약 생성 응답 구조\", () => {",
-                  "    pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.reservation\")));",
-                  "  });",
-                  "",
-                  "const res = pm.response.json();",
-                  "const sentString = pm.variables.replaceIn(pm.request.body.raw);   // 보낸 body (문자열), {{marker}} 등을 실제 값으로 바꾼 것",
-                  "const sentObject = JSON.parse(sentString);                         // 보낸 body (객체)  ",
-                  "",
-                  "  pm.test(\"응답이 보낸 값과 같음\", () => {",
-                  "    const { reservationId, status, ...rest } = res;           // 서비스가 붙인 두 필드를 빼고 비교",
-                  "    pm.expect(rest).to.eql(sentObject);",
-                  "  });",
-                  "",
-                  "  pm.variables.set(\"reservationId\", res.reservationId);",
-                  "  pm.variables.set(\"sentReservation\", sentString);",
-                  "} else {",
-                  "  pm.variables.unset(\"reservationId\");",
-                  "  pm.variables.unset(\"sentReservation\");",
-                  "  console.log(\"예약 생성 실패: reservationId 저장 안 함\", pm.response.code, pm.response.text());",
-                  "}"
+                  "const created = pm.response.code === 201;\n\npm.test(\"예약 생성 201\", () => {\n  pm.response.to.have.status(201);\n});\n\n\nif (created) {\n  pm.test(\"[Schema] 예약 생성 응답 구조\", () => {\n    pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.reservation\")));\n  });\n\nconst res = pm.response.json();\nconst sentString = pm.variables.replaceIn(pm.request.body.raw);   // 보낸 body (문자열), {{marker}} 등을 실제 값으로 바꾼 것\nconst sentObject = JSON.parse(sentString);                         // 보낸 body (객체)  \n\n  pm.test(\"응답이 보낸 값과 같음\", () => {\n    const { reservationId, status, ...rest } = res;           // 서비스가 붙인 두 필드를 빼고 비교\n    pm.expect(rest).to.eql(sentObject);\n  });\n\n  pm.variables.set(\"reservationId\", res.reservationId);\n  pm.variables.set(\"sentReservation\", sentString);\n} else {\n  pm.variables.unset(\"reservationId\");\n  pm.variables.unset(\"sentReservation\");\n  console.log(\"예약 생성 실패: reservationId 저장 안 함\", pm.response.code, pm.response.text());\n}"
                 ]
               }
             },
@@ -892,9 +820,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const marker = `SVC-${Date.now()}`;               // 실행할 때마다 달라지는 값",
-                  "pm.variables.set(\"marker\", marker);",
-                  "// body의 lastName을 \"{{marker}}\"로 바꿈"
+                  "const marker = `SVC-${Date.now()}`;               // 실행할 때마다 달라지는 값\npm.variables.set(\"marker\", marker);\n// body의 lastName을 \"{{marker}}\"로 바꿈"
                 ]
               }
             }
@@ -904,7 +830,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"guest\": { \"firstName\": \"InWon2\", \"lastName\": \"Kim\" },\n  \"stay\": { \"checkIn\": \"2026-12-01\", \"checkOut\": \"2026-12-03\" },\n  \"price\": 50000,\n  \"deposit\": true,\n  \"request\": \"Breakfast\"\n}",
+              "raw": "{\n  \"guest\": { \"firstName\": \"InWon2\", \"lastName\": \"{{marker}}\" },\n  \"stay\": { \"checkIn\": \"2026-12-01\", \"checkOut\": \"2026-12-03\" },\n  \"price\": 50000,\n  \"deposit\": true,\n  \"request\": \"Breakfast\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -989,6 +915,40 @@
           "response": []
         },
         {
+          "name": "3 예약 필터조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"[검색] 검색 요청 200\", () => {\n  pm.response.to.have.status(200);\n});\n\nif (pm.response.code === 200) {\n  const results = pm.response.json();                                  // [{ bookingid: 13 }, ...]\n  const reservationId = Number(pm.variables.get(\"reservationId\"));    // 비교를 위해 숫자로 맞춤\n  const ids = results.map((r) => r.bookingid);                         // [13, ...] 숫자 목록으로\n\n  console.log(`[검색] lastname=${pm.variables.get(\"marker\")} → ${JSON.stringify(ids)}`);\n\n  pm.test(\"[검색] 방금 만든 예약이 검색됨\", () => {\n    pm.expect(ids, \"검색 결과의 bookingid 목록\").to.include(reservationId);\n  });\n\n  pm.test(\"[검색] 고유값이라 정확히 1건\", () => {\n    pm.expect(ids, \"검색 결과의 bookingid 목록\").to.have.lengthOf(1);\n  });\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/booking?lastname={{marker}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "lastname",
+                  "value": "{{marker}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "④ 서비스로 조회",
           "event": [
             {
@@ -1004,15 +964,6 @@
           "request": {
             "method": "GET",
             "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{serviceUrl}}/reservations/{{reservationId}}",
               "host": [
