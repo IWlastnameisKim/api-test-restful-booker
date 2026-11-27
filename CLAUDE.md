@@ -8,7 +8,8 @@
 - 테스트 코드만 있는 레포입니다. 테스트 대상 서버는 별도 프로젝트입니다.
   - 예약 API: Restful-booker. 공용 서버(`https://restful-booker.herokuapp.com`) 또는 로컬(`~/Desktop/restful-booker`, `npm start`, 포트 3001)
   - 예약 접수 서비스: reservation-service. 별도 레포(`~/Desktop/reservation-service`, `npm start`, 포트 3002, `.env` 필요). 서비스 코드를 이 레포에 넣지 않습니다.
-- 테스트는 대상 서버를 주소(`baseUrl`, `serviceUrl`)로만 호출합니다.
+- 테스트는 대상 서버를 주소(`baseUrl`, `serviceUrl`, `relayUrl`, `caseServiceUrl`)로만 호출합니다.
+- 테스트 도구인 중계 서버(`mocks/booking-relay.js`)는 이 레포에 둡니다. 서비스 코드와 달리 테스트를 위한 코드이기 때문입니다.
 
 ## 파일과 역할
 
@@ -16,8 +17,10 @@
 | --- | --- | --- |
 | `collections/Restful-booker.postman_collection.json` | 요청, 테스트 스크립트, 컬렉션 레벨 스키마 | Postman에서 수정 후 Export, 또는 파일 직접 수정 후 Postman에 Import |
 | `env/restful-booker.postman_environment.json` | 공용 서버용 (01~07) | |
-| `env/restful-booker-local.postman_environment.json` | 로컬 구성용 (08): baseUrl 3001, serviceUrl 3002 | |
+| `env/restful-booker-local.postman_environment.json` | 로컬 구성용 (08, 09): baseUrl 3001, serviceUrl 3002, relayUrl 3101, caseServiceUrl 3102 | |
 | `data/*.json` | 케이스 원본 (id, case, purpose, expectedStatus, knownIssue, note, body), 결함 목록, regression 알려진 결함 태그 | 직접 수정 |
+| `data/service-cases.json` | 09 케이스 원본. 위 필드에 `expectedField`, `rawBody`, `expectedBody` 추가 | 직접 수정 |
+| `mocks/booking-relay.js` | 09용 중계 서버. 호출을 기록하면서 예약 API로 그대로 전달 (`/_relay/calls` 조회·초기화) | |
 | `scripts/check-known-issues.js` | Newman JSON 리포트를 known issue와 비교해 분류, 실패는 재실행 | |
 | `scripts/build-testcase-doc.js` | 데이터 파일 + 결함 목록 + JSON 리포트로 xlsx 생성 | |
 | `docs/*.xlsx` | 생성물. **손으로 고치지 않음** | `npm run docs:testcase` |
@@ -32,12 +35,16 @@ npm run test:regression      # 01, 03, 04, 05 + known issue 태그 판정
 npm run test:data            # 06 + data/booking-cases.json
 npm run test:data-patch      # 07 + data/patch-cases.json
 npm run test:service         # 08, 로컬 구성 (예약 API와 reservation-service를 먼저 실행)
+npm run test:service-cases   # 09 + data/service-cases.json (예약 API, 중계 서버, 케이스용 서비스를 먼저 실행)
+npm run relay                # 중계 서버 3101 → 3001
 npm run docs:testcase        # 테스트 케이스 문서 생성 (test:data, test:data-patch 실행 후)
 ```
 
+- 09용 케이스 서비스: `cd ~/Desktop/reservation-service && PORT=3102 BOOKING_API_URL=http://localhost:3101 npm start`. 실행할 때 붙인 환경변수가 `.env`보다 우선하므로 서비스 코드와 `.env`는 바꾸지 않습니다.
+
 - Newman은 전역 설치하지 않습니다. `npx newman` 또는 `npm run`으로 실행합니다.
 - 대상 서버를 한 번만 바꿀 때: `npx newman run ... --env-var baseUrl=http://localhost:3001`. `npm run test:xxx -- --env-var ...`는 쓰지 않습니다. 모든 스크립트가 `newman ... && node scripts/check-known-issues.js ...` 형태라 `--` 뒤의 값이 Newman이 아니라 node 명령에 붙습니다.
-- CI(GitHub Actions)는 smoke, regression, data, data-patch를 공용 서버로 실행합니다. 08은 서버 두 개가 필요해서 CI에 없습니다.
+- CI(GitHub Actions)는 smoke, regression, data, data-patch를 공용 서버로 실행합니다. 08·09는 로컬 서버가 여러 개 필요해서 CI에 없습니다.
 
 ## 반드시 지킬 것
 
@@ -57,7 +64,7 @@ Postman 계정에 예전 컬렉션이 동기화돼 있으면, Export한 파일�
 
 ### 커밋
 
-- `git add .` 대신 파일을 지정합니다. `docs/Restful-booker_API_테스트케이스.xlsx`가 untracked로 남아 있어 섞이면 안 됩니다.
+- `git add .` 대신 파일을 지정합니다. 
 - 커밋과 push는 작성자가 직접 합니다.
 
 ## 테스트 작성 규칙
@@ -99,6 +106,19 @@ Postman 계정에 예전 컬렉션이 동기화돼 있으면, Export한 파일�
 - 선택 필드(`request` → `additionalneeds`)는 보낸 경우와 안 보낸 경우 모두 실행해 확인합니다.
 - "예약 API를 호출하지 않았다"는 고유값 검색 결과 0건으로 확인하고, 같은 검색으로 정상 예약이 찾아지는지를 먼저 확인합니다.
 
+### 09 서비스 케이스
+
+- 구성: 테스트 → reservation-service 케이스용(3102) → 중계 서버(3101) → Restful-booker(3001). 08용 서비스(3002)와 따로 띄웁니다.
+- 한 행: 기록 초기화 → 서비스 예약 요청 → 호출 기록 확인(201이면 `["POST /booking"]`, 400이면 `[]`) → 교차 검증(201 행만) → 예약 정리(예약이 생긴 행만). 건너뛰는 요청은 Before request에서 `pm.execution.skipRequest()`로 처리합니다.
+- 판정 대상은 `--targets "서비스 예약 요청,호출 기록 확인,예약 API 교차 검증"`입니다. 기록 초기화와 정리의 실패는 SETUP_FAIL입니다.
+- "호출하지 않았다"는 고유값 검색이 아니라 중계 기록 0건으로 확인합니다. 이름 필드가 없는 케이스도 같은 방법으로 확인하기 위해서입니다. 데이터 첫 행(SVC-CASE-001, 기록 1건)이 기록 방식이 동작한다는 대조군이므로 맨 앞에 둡니다.
+- 기대값의 근거는 reservation-service README의 "검증 규칙"과 "오류 응답"입니다. 서비스는 규칙을 위에서부터 확인해 처음 걸린 오류 하나만 알려 주므로 `expectedField`도 그 순서로 정합니다. 상위 객체(`guest`, `stay`)가 없으면 첫 하위 필드에서 걸립니다.
+- `expectedField`가 없는 400 행은 응답에 `field`가 없어야 합니다(JSON 아님 = `INVALID_JSON`). 오류 종류(`error`) 칸은 두지 않기로 했습니다(작성자 결정).
+- 요청 형식 케이스의 기대값(작성자 결정, 명세를 구현에 맞춤): JSON 문법 오류는 400 `INVALID_JSON`(field 없음), body 없음은 400 `VALIDATION_ERROR` + field `body`, JSON 배열(`[]`)은 400 `VALIDATION_ERROR` + 첫 필드 `guest.firstName`. 400으로 거절하면 정상입니다.
+- 이름 앞뒤 공백은 Restful-booker가 제거해 저장하는 것을 정상으로 봅니다(작성자 결정). 서비스는 받은 값을 그대로 전달합니다. 저장 과정에서 값이 바뀌는 것이 정상인 행은 데이터에 `expectedBody`(응답·저장값의 기대값)를 두고, 없으면 보낸 `body`가 기대값입니다.
+- `rawBody`가 있는 행은 body를 글자 그대로 보냅니다(JSON 아님, body 없음). 없으면 `body`를 `JSON.stringify`합니다.
+- 서비스 결함이 생기면 ID는 `S-n`을 씁니다. 현재 등록된 서비스 결함은 없습니다.
+
 ## 진행 상황
 
-README의 "향후 계획"이 기준입니다. 08은 ①②③④ 완료. 거절 케이스(미호출 확인), 서비스 요청의 경계값·타입·필수값 케이스, mock 서버, CI 실행이 남아 있습니다.
+README의 "향후 계획"이 기준입니다. 08 ①②③④와 09 서비스 케이스(42행)는 완료했습니다. 다음은 중계 서버를 이용한 예약 API 오류 처리(502·503·504) 테스트와 CI 실행입니다.

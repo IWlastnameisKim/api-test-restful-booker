@@ -1,0 +1,334 @@
+[
+  {
+    "id": "SVC-CASE-001",
+    "case": "[정상] 모든 필드 정상",
+    "purpose": "정상 요청은 201로 생성되고, 중계 기록에 예약 API 호출 1건이 남는지 확인 (기록 방식이 동작한다는 대조군)",
+    "expectedStatus": 201,
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case001"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-002",
+    "case": "[누락] guest",
+    "purpose": "guest 객체가 없으면 거절되고 예약 API를 호출하지 않는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.firstName",
+    "note": "상위 객체 누락은 첫 하위 필드(guest.firstName)에서 걸림",
+    "body": {"stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-003",
+    "case": "[누락] guest.firstName",
+    "purpose": "firstName이 없으면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.firstName",
+    "body": {"guest": {"lastName": "Case003"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-004",
+    "case": "[누락] guest.lastName",
+    "purpose": "lastName이 없으면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.lastName",
+    "body": {"guest": {"firstName": "InWon"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-005",
+    "case": "[누락] stay",
+    "purpose": "stay 객체가 없으면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkIn",
+    "note": "상위 객체 누락은 첫 하위 필드(stay.checkIn)에서 걸림",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case005"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-006",
+    "case": "[누락] stay.checkIn",
+    "purpose": "checkIn이 없으면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkIn",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case006"}, "stay": {"checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-007",
+    "case": "[누락] stay.checkOut",
+    "purpose": "checkOut이 없으면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkOut",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case007"}, "stay": {"checkIn": "2026-12-01"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-008",
+    "case": "[누락] price",
+    "purpose": "price가 없으면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "price",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case008"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-009",
+    "case": "[누락] deposit",
+    "purpose": "deposit이 없으면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "deposit",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case009"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-010",
+    "case": "[누락] request (선택 필드)",
+    "purpose": "선택 필드 request가 없어도 생성되고, 예약 API에 additionalneeds를 보내지 않는지 확인",
+    "expectedStatus": 201,
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case010"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true}
+  },
+  {
+    "id": "SVC-CASE-011",
+    "case": "[누락] 모든 필드",
+    "purpose": "빈 객체는 거절되고, 검증 순서의 첫 필드(guest.firstName)를 알려 주는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.firstName",
+    "body": {}
+  },
+  {
+    "id": "SVC-CASE-012",
+    "case": "[경계] firstName 1글자",
+    "purpose": "비어 있지 않은 문자열의 최소 길이인 1글자로 생성되는지 확인",
+    "expectedStatus": 201,
+    "body": {"guest": {"firstName": "A", "lastName": "Case012"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-013",
+    "case": "[경계] firstName 빈 문자열",
+    "purpose": "빈 문자열 이름이 거절되는지 확인 (누락과 별개)",
+    "expectedStatus": 400,
+    "expectedField": "guest.firstName",
+    "body": {"guest": {"firstName": "", "lastName": "Case013"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-014",
+    "case": "[경계] firstName 공백만",
+    "purpose": "공백만 있는 이름이 빈 이름으로 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.firstName",
+    "body": {"guest": {"firstName": "  ", "lastName": "Case014"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-015",
+    "case": "[경계] lastName 빈 문자열",
+    "purpose": "빈 문자열 성이 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.lastName",
+    "body": {"guest": {"firstName": "InWon", "lastName": ""}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-016",
+    "case": "[타입] firstName 숫자",
+    "purpose": "문자열이 아닌 숫자 이름이 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.firstName",
+    "body": {"guest": {"firstName": 123, "lastName": "Case016"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-017",
+    "case": "[타입] firstName null",
+    "purpose": "null 이름이 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.firstName",
+    "body": {"guest": {"firstName": null, "lastName": "Case017"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-018",
+    "case": "[타입] guest가 문자열",
+    "purpose": "guest가 객체가 아니라 문자열이면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.firstName",
+    "body": {"guest": "InWon Kim", "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-019",
+    "case": "[경계] firstName 앞뒤 공백",
+    "purpose": "앞뒤 공백이 있는 이름이 통과하고, 공백을 제거한 값으로 저장·응답되는지 확인",
+    "expectedStatus": 201,
+    "note": "공백 제거는 Restful-booker가 수행. 서비스는 받은 값을 그대로 전달함",
+    "body": {"guest": {"firstName": " InWon ", "lastName": "Case019"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"},
+    "expectedBody": {"guest": {"firstName": "InWon", "lastName": "Case019"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-020",
+    "case": "[경계] 1박",
+    "purpose": "숙박 기간의 최소값인 1박(checkOut = checkIn + 1일)으로 생성되는지 확인",
+    "expectedStatus": 201,
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case020"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-02"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-021",
+    "case": "[경계] 0박",
+    "purpose": "checkOut이 checkIn과 같은 0박이 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkOut",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case021"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-01"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-022",
+    "case": "[경계] 날짜 역전",
+    "purpose": "checkOut이 checkIn보다 이전이면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkOut",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case022"}, "stay": {"checkIn": "2026-12-03", "checkOut": "2026-12-01"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-023",
+    "case": "[경계] 윤년 2월 29일",
+    "purpose": "윤년의 2월 29일은 실제 있는 날짜로 생성되는지 확인",
+    "expectedStatus": 201,
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case023"}, "stay": {"checkIn": "2028-02-29", "checkOut": "2028-03-01"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-024",
+    "case": "[경계] 평년 2월 29일",
+    "purpose": "평년의 2월 29일은 없는 날짜로 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkIn",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case024"}, "stay": {"checkIn": "2026-02-29", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-025",
+    "case": "[형식] checkIn 구분자 오류",
+    "purpose": "YYYY-MM-DD가 아닌 2026/12/01 형식이 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkIn",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case025"}, "stay": {"checkIn": "2026/12/01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-026",
+    "case": "[형식] checkOut 13월",
+    "purpose": "없는 월(13월)이 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkOut",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case026"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-13-01"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-027",
+    "case": "[경계] checkIn 빈 문자열",
+    "purpose": "빈 문자열 날짜가 거절되는지 확인 (누락과 별개)",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkIn",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case027"}, "stay": {"checkIn": "", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-028",
+    "case": "[타입] checkIn 숫자",
+    "purpose": "문자열이 아닌 숫자 날짜가 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "stay.checkIn",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case028"}, "stay": {"checkIn": 20261201, "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-029",
+    "case": "[경계] price 0",
+    "purpose": "0 이상 정수의 경계인 0으로 생성되는지 확인",
+    "expectedStatus": 201,
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case029"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 0, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-030",
+    "case": "[경계] price -1",
+    "purpose": "0 이상 정수의 경계 바로 밖인 -1이 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "price",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case030"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": -1, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-031",
+    "case": "[타입] price 소수",
+    "purpose": "정수가 아닌 소수가 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "price",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case031"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 100.5, "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-032",
+    "case": "[타입] price 문자열",
+    "purpose": "숫자 모양의 문자열이 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "price",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case032"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": "50000", "deposit": true, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-033",
+    "case": "[경계] deposit false",
+    "purpose": "boolean의 다른 값인 false로 생성되고 false로 저장되는지 확인",
+    "expectedStatus": 201,
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case033"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": false, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-034",
+    "case": "[타입] deposit 문자열 true",
+    "purpose": "문자열 \"true\"가 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "deposit",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case034"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": "true", "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-035",
+    "case": "[타입] deposit 문자열 false",
+    "purpose": "문자열 \"false\"가 거절되는지 확인 (true로 바뀌는 D-2 유형 방지)",
+    "expectedStatus": 400,
+    "expectedField": "deposit",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case035"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": "false", "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-036",
+    "case": "[타입] deposit 숫자 0",
+    "purpose": "숫자 0이 boolean으로 바뀌지 않고 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "deposit",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case036"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": 0, "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-037",
+    "case": "[경계] request 빈 문자열",
+    "purpose": "선택 필드 request의 빈 문자열이 허용되고 그대로 저장되는지 확인",
+    "expectedStatus": 201,
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case037"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": ""}
+  },
+  {
+    "id": "SVC-CASE-038",
+    "case": "[타입] request 숫자",
+    "purpose": "request가 문자열이 아니면 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "request",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case038"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": 50000, "deposit": true, "request": 123}
+  },
+  {
+    "id": "SVC-CASE-039",
+    "case": "[순서] 오류 2개 동시",
+    "purpose": "price와 deposit이 함께 틀리면 검증 순서상 앞인 price 하나만 알려 주는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "price",
+    "body": {"guest": {"firstName": "InWon", "lastName": "Case039"}, "stay": {"checkIn": "2026-12-01", "checkOut": "2026-12-03"}, "price": -1, "deposit": "true", "request": "Breakfast"}
+  },
+  {
+    "id": "SVC-CASE-040",
+    "case": "[형식] JSON 아님",
+    "purpose": "JSON이 아닌 body가 INVALID_JSON으로 거절되는지 확인",
+    "expectedStatus": 400,
+    "note": "rawBody를 글자 그대로 전송",
+    "rawBody": "guest=InWon"
+  },
+  {
+    "id": "SVC-CASE-041",
+    "case": "[형식] body 없음",
+    "purpose": "body가 없는 요청이 검증 오류(VALIDATION_ERROR, field body)로 거절되는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "body",
+    "note": "명세를 구현에 맞춤: body 없음은 INVALID_JSON이 아니라 VALIDATION_ERROR + field \"body\"",
+    "rawBody": ""
+  },
+  {
+    "id": "SVC-CASE-042",
+    "case": "[형식] JSON 배열",
+    "purpose": "JSON이지만 객체가 아닌 배열이 거절되고, 검증 순서의 첫 필드를 알려 주는지 확인",
+    "expectedStatus": 400,
+    "expectedField": "guest.firstName",
+    "body": []
+  }
+]

@@ -40,11 +40,14 @@ api-test-restful-booker/
  ├─ data/                                        # 케이스 원본 (id, case, purpose, expectedStatus, knownIssue, note, body)
  │   ├─ booking-cases.json                       # POST 데이터 기반 테스트 입력값 (16행)
  │   ├─ patch-cases.json                         # PATCH 데이터 기반 테스트 입력값 (37행)
+ │   ├─ service-cases.json                       # reservation-service 입력 검증 케이스 (42행, 09 폴더용)
  │   ├─ regression-known-issues.json             # regression의 알려진 결함 태그 목록
  │   └─ defects.json                             # 결함 목록 (테스트 케이스 문서의 결함목록 시트 원본)
  ├─ env/
  │   ├─ restful-booker.postman_environment.json  # 공용 서버: baseUrl, username, password, token, bookingid
-│   └─ restful-booker-local.postman_environment.json  # 로컬 구성: baseUrl(3001), serviceUrl(3002) (08 폴더용)
+ │   └─ restful-booker-local.postman_environment.json  # 로컬 구성: baseUrl(3001), serviceUrl(3002), relayUrl(3101), caseServiceUrl(3102) (08·09 폴더용)
+ ├─ mocks/
+ │   └─ booking-relay.js                         # 예약 API 중계 서버: 호출을 기록하면서 예약 API로 그대로 전달 (09 폴더용)
  ├─ docs/
  │   └─ Restful-booker_API_테스트케이스.xlsx       # 테스트 케이스 문서 (템플릿 + 데이터셋, 현황, 결함목록)
  ├─ scripts/
@@ -68,7 +71,8 @@ api-test-restful-booker/
 | 05-Regression-Delete | 회귀 테스트 | 이미 삭제된 예약 재삭제(Bug-11). 삭제 이후에 실행되어야 해서 CleanUp 뒤에 위치 |
 | 06-Data-Driven | 데이터 기반 테스트 | `POST /booking` 요청 1개를 `data/booking-cases.json`의 행 수만큼 반복 |
 | 07-Data-Driven-Patch | 데이터 기반 테스트 | 토큰 발급 → 예약 생성 → `PATCH` → 재조회 → 삭제 5개 요청을 `data/patch-cases.json`의 행 수만큼 반복 |
-| 08-Service-Chain | 서버 간 통신 테스트 | [reservation-service](https://github.com/IWlastnameisKim/reservation-service)를 호출하고, 서비스가 예약 API에 값을 제대로 전달했는지 예약 API를 직접 조회해 필드 매핑대로 확인 (거절 케이스 진행 중) |
+| 08-Service-Chain | 서버 간 통신 테스트 | [reservation-service](https://github.com/IWlastnameisKim/reservation-service)를 호출하고, 서비스가 예약 API에 값을 제대로 전달했는지 예약 API를 직접 조회해 필드 매핑대로 확인 |
+| 09-Service-Cases | 서비스 입력 검증 데이터 기반 테스트 | 기록 초기화 → 서비스 예약 요청 → 호출 기록 확인 → 교차 검증 → 정리 5개 요청을 `data/service-cases.json`의 행 수만큼 반복. 거절(400)이면 예약 API 호출 0건, 생성(201)이면 1건과 저장값을 확인 |
 
 ### 실행 그룹
 
@@ -80,6 +84,8 @@ api-test-restful-booker/
 | regression | 01-Setup, 03-Regression, 04-CleanUp, 05-Regression-Delete | 알려진 결함 추적 | 새 실패만 파이프라인 실패 (알려진 결함은 `data/regression-known-issues.json` 기준) |
 | data | 06-Data-Driven + `data/booking-cases.json` | 생성 입력값 검증 케이스 반복 | 새 실패만 파이프라인 실패 (알려진 결함은 기록) |
 | data-patch | 07-Data-Driven-Patch + `data/patch-cases.json` | 부분 수정 입력값 검증과 저장 결과 확인 | 새 실패만 파이프라인 실패 (알려진 결함은 기록) |
+| service | 08-Service-Chain | 서버 간 통신 정상 흐름 (로컬 구성) | 새 실패가 있으면 실패. CI 미포함 |
+| service-cases | 09-Service-Cases + `data/service-cases.json` | 서비스 입력 검증과 예약 API 호출 여부 (로컬 구성 + 중계 서버) | 새 실패만 실패 (알려진 결함은 기록). CI 미포함 |
 
 ## 데이터 기반 테스트: 예약 생성 (06)
 
@@ -245,7 +251,7 @@ BKG-PATCH-020(가격 -990)은 음수 분할에서 경계값(-1)과 중복이라 
 - **변수 이름 규칙**: 같은 데이터가 한 스크립트에서 두 형태로 쓰일 때는 형태를 이름에 붙입니다(`sentString`: 보낸 body 문자열, `sentObject`: 객체). 요청과 응답이 함께 나오는 스크립트에서는 `body` 대신 `res`(받은 응답), `saved`(예약 API에 저장된 값)처럼 출처가 드러나게 짓습니다. 다른 요청으로 넘기는 값은 Postman 변수 `sentReservation`에 문자열로 담습니다.
 - **고유값으로 검색 (③)**: ①의 Before request가 실행마다 고유값(`marker = SVC-<시각>`)을 만들고 body의 `lastName`에 넣습니다(`{{marker}}`). ①은 `pm.variables.replaceIn`으로 치환된 body를 저장하므로 ②의 비교에도 실제 값이 쓰입니다. ③은 이 값으로 예약 API를 검색해 결과의 `bookingid` 목록에 `reservationId`가 있는지, 정확히 1건인지 확인합니다. 건수까지 보는 이유는 검색 조건이 무시되고 전체 목록이 와도 "포함됨"은 통과하기 때문입니다. 변수에서 꺼낸 id는 문자열일 수 있어 숫자로 맞춰 비교합니다.
 - **검색이 "없음"도 잡는지 확인**: ①의 `lastName`을 고유값이 아닌 값으로 바꿔 실행하면, ②는 통과(보낸 대로 저장됨)하고 ③은 `expected [] to include ...`로 실패했습니다. 고유값이 저장되면 찾아지고, 저장되지 않으면 0건이라는 두 방향을 모두 확인한 것입니다.
-- **"호출하지 않았다"의 확인 (다음 단계)**: 서비스가 거절한 요청(400)은 예약 API를 호출하지 않아야 합니다. 거절 요청에 별도 고유값(`REJ-<시각>`)을 넣고, 같은 방식으로 검색해 0건인지 확인합니다. ③에서 같은 검색이 정상 예약을 찾는다는 것을 먼저 확인했기 때문에, 0건을 "예약 API에 저장되지 않음"의 근거로 쓸 수 있습니다.
+- **"호출하지 않았다"의 확인은 09에서**: 처음에는 거절 요청에 고유값을 넣고 검색해 0건인지 보려 했지만, 이름 필드가 없는 케이스(모든 필드 누락, body 없음 등)는 고유값을 넣을 곳이 없어 확인할 수 없습니다. 그래서 09에서는 검색 대신 호출을 기록하는 중계 서버로 모든 케이스를 같은 방법으로 확인합니다.
 
 ### 실행
 
@@ -262,6 +268,104 @@ cd ~/Desktop/reservation-service && npm start
 npm run test:service
 ```
 
+## 서비스 케이스 테스트 (09)
+
+reservation-service의 입력 검증을 06·07과 같은 데이터 기반 구조(데이터 파일 + Newman `-d` + `check-known-issues.js` 행 단위 판정)로 테스트합니다. 서비스 응답만 보지 않고, **예약 API 쪽에서 실제로 무슨 일이 일어났는지**까지 확인합니다.
+
+| 서비스 응답 | 예약 API 쪽에서 확인할 것 |
+| --- | --- |
+| 201 | 예약 API 호출이 정확히 1건(`POST /booking`)이고, 보낸 값이 필드 매핑대로 저장됐는지 (08 ②의 매핑표 방식) |
+| 400 | 예약 API로 **요청이 하나도 가지 않았는지** (호출 0건) |
+
+### 중계 서버로 "호출하지 않음" 확인
+
+"호출하지 않았다"는 응답에 나타나지 않습니다. 08처럼 고유값을 검색하는 방법은 이름 필드가 없는 케이스(모든 필드 누락, body 없음, JSON 아님)에 쓸 수 없어서, 서비스와 예약 API 사이에 **호출을 기록하면서 그대로 전달하는 중계 서버**(`mocks/booking-relay.js`)를 둡니다.
+
+```
+테스트 ── {{caseServiceUrl}} ──→ reservation-service (케이스용, 3102) ──→ 중계 서버 (3101) ──→ 예약 API (3001)
+   │                                                                     └ 호출 기록
+   ├──── {{relayUrl}}/_relay/calls ─→ 중계 서버: 기록 조회·초기화
+   └──── {{baseUrl}} ────────────────────────────────────────────────────────────────→ 예약 API (3001)   교차 검증
+```
+
+- **서비스 코드는 그대로**: 같은 reservation-service를 `BOOKING_API_URL`만 중계 서버 주소로 바꿔 하나 더 띄웁니다(실행할 때 붙인 환경변수가 `.env`보다 우선). 08용 서비스(3002)는 그대로 둡니다.
+- **중계 서버는 테스트 도구**라 이 레포에 둡니다. Node.js 기본 모듈만 쓰고, 예약 API 경로와 겹치지 않는 `/_relay/calls`로 기록을 조회(`GET`)·초기화(`DELETE`)합니다. 기록에는 method, path, 서비스가 보낸 body, 예약 API의 응답 상태가 남습니다.
+- **기록 방식부터 증명**: 데이터 첫 행(SVC-CASE-001)은 정상 요청으로 기록 1건을 확인합니다. 기록이 동작한다는 것이 확인돼야 400 행의 "0건"을 미호출의 근거로 쓸 수 있습니다(08 ③에서 검색이 정상 예약을 찾는지 먼저 확인한 것과 같은 이유). 초기화가 동작하지 않으면 다음 400 행에서 기록이 남아 실패로 드러납니다.
+- **교차 검증은 예약 API를 직접**: 중계 서버는 3001로 그대로 전달하므로, `baseUrl`(3001)을 조회하면 서비스가 저장한 것과 같은 데이터를 봅니다.
+
+### 한 행의 실행 순서
+
+| 순서 | 요청 | 하는 일 | 판정 |
+| --- | --- | --- | --- |
+| 1 | 기록 초기화 `DELETE {{relayUrl}}/_relay/calls` | 이전 행의 호출 기록과 `reservationId`를 지움 | 준비 |
+| 2 | 서비스 예약 요청 `POST {{caseServiceUrl}}/reservations` | 행의 body를 보내고 상태 코드, 400이면 오류 `field`, 201이면 스키마와 응답 값 확인 | 대상 |
+| 3 | 호출 기록 확인 `GET {{relayUrl}}/_relay/calls` | 201이면 `["POST /booking"]`, 400이면 `[]` | 대상 |
+| 4 | 예약 API 교차 검증 `GET {{baseUrl}}/booking/{{reservationId}}` | 필드 매핑 7개 비교 (201 행만, 400 행은 건너뜀) | 대상 |
+| 5 | 예약 정리 `DELETE {{caseServiceUrl}}/reservations/{{reservationId}}` | 만든 예약 삭제 (예약이 생긴 행만) | 준비 |
+
+`--targets "서비스 예약 요청,호출 기록 확인,예약 API 교차 검증"`으로 판정 대상을 정해, 기록 초기화나 정리가 실패하면 결함이 아니라 SETUP_FAIL로 봅니다. 건너뛰는 요청은 Before request에서 `pm.execution.skipRequest()`로 처리합니다.
+
+### 데이터 파일
+
+`data/service-cases.json`의 한 행이 케이스 하나입니다. 06·07의 필드에 세 가지를 더했습니다.
+
+| 필드 | 역할 |
+| --- | --- |
+| `expectedField` | 400 행에서 응답의 `field`가 가리켜야 할 필드. **비어 있으면 응답에 `field`가 없어야 함** (JSON 아님 = `INVALID_JSON`) |
+| `rawBody` | body를 JSON으로 만들지 않고 글자 그대로 보냄. JSON이 아닌 값(`guest=InWon`)과 body 없음(`""`)에 사용. 없으면 `body`를 `JSON.stringify`해서 보냄 |
+| `expectedBody` | 201 행에서 서비스 응답과 예약 API 저장값의 기대값. 저장 과정에서 값이 바뀌는 것이 정상인 행에만 둠(SVC-CASE-019 이름 앞뒤 공백 제거). 없으면 보낸 `body`가 기대값 |
+
+- 서비스는 검증 규칙을 위에서부터 확인해 **처음 걸린 오류 하나만** 알려 주므로, `expectedField`도 그 순서대로 정합니다. `guest`, `stay`처럼 상위 객체가 없으면 첫 하위 필드(`guest.firstName`, `stay.checkIn`)에서 걸립니다.
+- 오류 종류(`error`) 칸은 두지 않았습니다. 상태 코드와 `field`의 유무로 `VALIDATION_ERROR`와 `INVALID_JSON`이 구분됩니다.
+- `lastName`을 `Case001`~처럼 케이스마다 다르게 두어, 예약 API에 저장된 예약이 어느 케이스에서 생겼는지 추적합니다.
+
+### 케이스 (42행)
+
+기대값의 근거는 reservation-service README의 "검증 규칙"과 "오류 응답"입니다.
+
+| 분류 | 행 수 | 내용 | 기대 |
+| --- | --- | --- | --- |
+| 정상 대조군 | 1 | 모든 필드 정상 (중계 기록 1건 증명) | 201 |
+| 필드 누락 | 10 | 필수 8개(`guest`, `guest.firstName`, `guest.lastName`, `stay`, `stay.checkIn`, `stay.checkOut`, `price`, `deposit`) 하나씩 400, 선택 필드 `request` 누락 201, 모든 필드 누락(`{}`) 400 | 400 / 201 |
+| 이름 | 8 | 1글자 201, 앞뒤 공백 201(공백을 제거한 값으로 저장·응답), 빈 문자열·공백만·숫자·null·guest가 문자열 400, lastName 빈 문자열 400 | 201 / 400 |
+| 숙박 기간·날짜 | 9 | 1박·윤년 2월 29일 201, 0박·날짜 역전·평년 2월 29일·`2026/12/01`·13월·빈 문자열·숫자 400 | 201 / 400 |
+| 가격 | 4 | 0 201, -1·소수·숫자 문자열 400 | 201 / 400 |
+| deposit | 4 | `false` 201, `"true"`·`"false"`·`0` 400 | 201 / 400 |
+| request | 2 | 빈 문자열 201, 숫자 400 | 201 / 400 |
+| 검증 순서 | 1 | price와 deposit이 함께 틀리면 앞인 `price`만 알려 줌 | 400 |
+| 요청 형식 | 3 | JSON 아님 `INVALID_JSON`(field 없음), body 없음 `VALIDATION_ERROR` + field `body`, JSON 배열 `guest.firstName` | 400 |
+
+- 누락과 빈 값(`""`)은 별개 케이스로 둡니다. 서비스 안에서 다른 조건으로 걸릴 수 있기 때문입니다.
+- 공백만 있는 이름(400)과 앞뒤 공백 이름(201)을 함께 두어, "비어 있지 않은 문자열"의 판단 기준과 저장 결과를 모두 확인합니다.
+
+명세에 없던 두 동작은 실행 결과를 보고 **현재 동작을 정상으로 정했습니다.** reservation-service README에도 같은 내용을 보완할 예정입니다.
+
+| 케이스 | 동작 | 결정 |
+| --- | --- | --- |
+| SVC-CASE-019 앞뒤 공백 이름 | 서비스는 `" InWon "`을 그대로 전달하고, Restful-booker가 공백을 제거해 `"InWon"`으로 저장. 서비스 응답도 `"InWon"` | 정상. 저장값과 응답의 기대값을 공백을 제거한 값(`expectedBody`)으로 둠 |
+| SVC-CASE-041 body 없음 | 400 `VALIDATION_ERROR` + `field: "body"` (`INVALID_JSON`이 아님) | 400으로 거절하면 정상. 명세를 구현에 맞춤 |
+
+- 019는 중계 기록에 서비스가 보낸 body(`" InWon "`)가 남아 있어, 공백을 지운 곳이 서비스가 아니라 Restful-booker라는 것을 구분할 수 있었습니다.
+- 처음에는 두 케이스를 서비스 결함(S-1, S-2)으로 등록했다가, 위 결정에 따라 결함 목록에서 제외했습니다.
+
+### 실행
+
+예약 API, 중계 서버, 케이스용 reservation-service를 먼저 띄운 뒤 실행합니다. 08용 서비스(3002)는 09에 필요 없습니다.
+
+```bash
+# 터미널 1: 예약 API
+cd ~/Desktop/restful-booker && npm start
+
+# 터미널 2: 중계 서버 (3101 → 3001)
+npm run relay
+
+# 터미널 3: 케이스용 reservation-service (3102 → 중계 서버)
+cd ~/Desktop/reservation-service && PORT=3102 BOOKING_API_URL=http://localhost:3101 npm start
+
+# 터미널 4: 테스트
+npm run test:service-cases
+```
+
 ## 테스트 케이스 문서
 
 `docs/Restful-booker_API_테스트케이스.xlsx`에 데이터 기반 테스트를 **템플릿 + 데이터셋** 구조로 정리했습니다. 절차는 하나이고 입력만 여러 개라는 데이터 기반 테스트의 구조를 문서에도 그대로 옮긴 것입니다.
@@ -276,6 +380,7 @@ npm run test:service
 - **문서는 손으로 고치지 않고 생성합니다.** `npm run test:data && npm run test:data-patch && npm run docs:testcase`를 실행하면, 데이터 파일(케이스·결함 ID·비고)과 `data/defects.json`(결함 목록), JSON 리포트(실제 Status·저장값·결과)로 문서를 다시 만듭니다. 결과가 knownIssue와 맞지 않으면(NEW_FAIL이나 FIXED?가 남아 있으면) 생성을 멈춥니다. 문서는 1차 실행 리포트로 만들기 때문에, 1차에서 RETRY_OK가 나왔다면 테스트를 다시 실행한 뒤 생성합니다.
 - **케이스 원본은 데이터 파일**입니다. 문서의 ID·케이스·목적·입력·기대 Status는 데이터 파일과 같아야 합니다.
 - 케이스 추가 순서: 데이터 파일에 행 추가 → 실행 (새 행이 실패하면 NEW_FAIL) → 결함 판단 후 `knownIssue` 기입 → `npm run docs:testcase`로 문서 재생성
+- 09(서비스 케이스)는 아직 문서에 넣지 않았습니다.
 
 ## 응답 스키마 검증
 
@@ -501,6 +606,9 @@ npm run test:api
 
 # 서버 간 통신 (예약 API와 reservation-service를 먼저 실행)
 npm run test:service
+
+# 서비스 입력 검증 (예약 API, 중계 서버, 케이스용 reservation-service를 먼저 실행)
+npm run test:service-cases
 ```
 
 각 스크립트는 `newman run`에 `--folder`로 실행 그룹을 지정하고, 터미널 출력과 HTML 리포트를 함께 생성합니다.
@@ -512,6 +620,7 @@ npm run test:service
 | `test:data` | `reports/data.html`, `reports/data.json` |
 | `test:data-patch` | `reports/data-patch.html`, `reports/data-patch.json` |
 | `test:service` | `reports/service.html`, `reports/service.json` |
+| `test:service-cases` | `reports/service-cases.html`, `reports/service-cases.json` |
 
 모든 스크립트는 Newman 실행 뒤 `check-known-issues.js`로 판정하며, 실패를 재실행하면 `reports/<이름>-retry.html`, `-retry.json`이 추가로 생깁니다.
 
@@ -544,6 +653,7 @@ npm run test:service
 | data | 16 (iterations 16) | 31 | 12 | PASS 6, KNOWN_FAIL 10, NEW_FAIL 0 (POST-007, 015는 스키마 위반 포함) |
 | data-patch | 185 (iterations 37) | 370 | 66 | PASS 13, KNOWN_FAIL 24, NEW_FAIL 0 (스키마 위반 12행 × PATCH·재조회 2곳 포함) |
 | service | 4 | 16 | 0 | 모두 통과 (로컬 구성: 예약 API + reservation-service). ① 3, ② 8, ③ 3, ④ 2 |
+| service-cases | 144 (iterations 42) | 300 | 0 | PASS 42, NEW_FAIL 0. 400 행 33개 모두 예약 API 호출 0건, 201 행 9개 모두 호출 1건 + 교차 검증 |
 
 regression의 실패 5건은 모두 **알려진 결함에 대한 회귀 테스트**입니다(Bug-1, 4, 8, 9, 11). 통과하는 7건은 Setup의 토큰 발급·예약 생성과 각 스키마 검증, `[Bug-1] 로그인 실패 시 토큰 없음`, CleanUp의 삭제와 삭제 후 조회입니다.
 결함이 수정되면 해당 테스트가 PASS로 바뀌고, 다시 FAIL이 되면 결함이 재발한 것으로 판단합니다.
@@ -647,7 +757,7 @@ data-patch는 요청·스크립트 오류 없이 37행이 모두 실행됩니다
 - [x] 서버 간 통신 테스트 구성: 테스트 대상 reservation-service(별도 레포), 로컬 구성용 Environment, 서비스 응답 스키마, 생성·교차 검증·조회 요청
 - [x] 08 ② 교차 검증: 필드 매핑 7개를 표 하나로 정의해 비교 로그와 필드별 테스트 생성, 선택 필드(`request`)는 보낸 경우와 안 보낸 경우 모두 확인
 - [x] 08 ③ 고유값 검색으로 생성한 예약 찾기 (포함 여부와 건수), 고유값이 저장되지 않으면 0건인지 확인
-- [ ] 08 거절 케이스(400)에서 예약 API 미호출 확인 (거절 요청 고유값 검색 0건)
-- [ ] 08 서비스 요청의 경계값·동등 분할, 타입 오류, 필수 값 누락 케이스
-- [ ] 예약 API 대신 호출을 기록하는 mock 서버로 미호출·오류 처리(502·503·504) 확인
-- [ ] CI에서 예약 API와 reservation-service를 띄워 08 폴더 실행
+- [x] 09 서비스 케이스 테스트: 필수 값 누락, 경계값·동등 분할, 타입 오류, 요청 형식 42행을 데이터 기반으로 실행
+- [x] 호출을 기록하는 중계 서버(`mocks/booking-relay.js`)로 거절 케이스(400)의 예약 API 미호출 확인 (고유값 검색 대신, 모든 케이스를 같은 방법으로)
+- [ ] 중계 서버로 예약 API 오류 처리(502·503·504) 확인
+- [ ] CI에서 예약 API와 reservation-service를 띄워 08·09 폴더 실행

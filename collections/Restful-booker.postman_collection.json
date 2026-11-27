@@ -915,7 +915,7 @@
           "response": []
         },
         {
-          "name": "3 예약 필터조회",
+          "name": "③ 검색으로 찾기",
           "event": [
             {
               "listen": "test",
@@ -968,6 +968,343 @@
               "raw": "{{serviceUrl}}/reservations/{{reservationId}}",
               "host": [
                 "{{serviceUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "{{reservationId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "09-Service-Cases",
+      "item": [
+        {
+          "name": "기록 초기화",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 행이 바뀌어도 variables는 남으므로, 행을 시작할 때 이전 행의 예약 id를 지움",
+                  "pm.variables.unset(\"reservationId\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"[준비] 중계 기록 초기화 204\", () => {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{relayUrl}}/_relay/calls",
+              "host": [
+                "{{relayUrl}}"
+              ],
+              "path": [
+                "_relay",
+                "calls"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "서비스 예약 요청",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 행의 body를 JSON.stringify로 타입을 보존해 보냄. rawBody가 있으면 글자 그대로 보냄 (JSON 아님, body 없음 케이스)",
+                  "const rawBody = pm.iterationData.get(\"rawBody\");",
+                  "const sentObject = pm.iterationData.get(\"body\");",
+                  "",
+                  "if (rawBody === undefined && sentObject === undefined) {",
+                  "  console.log(\"데이터 파일 없이 실행됨. npm run test:service-cases (newman -d)로 실행하세요.\");",
+                  "}",
+                  "",
+                  "pm.variables.set(\"requestBody\", rawBody !== undefined ? rawBody : JSON.stringify(sentObject));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.iterationData.get(\"id\");",
+                  "const caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");",
+                  "const expected = pm.iterationData.get(\"expectedStatus\");",
+                  "const expectedField = pm.iterationData.get(\"expectedField\");",
+                  "const code = pm.response.code;",
+                  "",
+                  "pm.test(`[Data]${caseName} -> 기대 ${expected}`, () => {",
+                  "  pm.expect(code, `기대 ${expected}, 실제 ${code}`).to.eql(expected);",
+                  "});",
+                  "",
+                  "if (code !== expected) {",
+                  "  console.log(`[Data]${caseName} -> 기대 ${expected}, 실제 ${code}`);",
+                  "  console.log(\"보낸 body:\", pm.variables.get(\"requestBody\"));",
+                  "  console.log(\"응답:\", pm.response.text());",
+                  "}",
+                  "",
+                  "// ----- 400: 어느 필드에서 걸렸는지 (expectedField가 없으면 field가 없어야 함 = JSON 아님) -----",
+                  "if (expected === 400 && code === 400) {",
+                  "  let res;",
+                  "  try { res = pm.response.json(); } catch (e) { res = undefined; }",
+                  "",
+                  "  if (expectedField !== undefined) {",
+                  "    pm.test(`[Data]${caseName}: 오류 field ${expectedField}`, () => {",
+                  "      pm.expect(res && res.field, `오류 응답의 field (응답: ${pm.response.text()})`).to.eql(expectedField);",
+                  "    });",
+                  "  } else {",
+                  "    pm.test(`[Data]${caseName}: 오류 field 없음 (JSON 아님)`, () => {",
+                  "      pm.expect(res, `오류 응답 (응답: ${pm.response.text()})`).to.be.an(\"object\").that.does.not.have.property(\"field\");",
+                  "    });",
+                  "  }",
+                  "}",
+                  "",
+                  "// ----- 201: 응답 구조와 값, 다음 요청용 reservationId 저장 -----",
+                  "if (code === 201) {",
+                  "  const res = pm.response.json();",
+                  "",
+                  "  pm.test(`[Schema] ${caseName}: 예약 생성 응답 구조`, () => {",
+                  "    pm.response.to.have.jsonSchema(JSON.parse(pm.variables.get(\"schema.reservation\")));",
+                  "  });",
+                  "",
+                  "  if (pm.iterationData.get(\"rawBody\") === undefined) {",
+                  "    // 기대값은 보낸 값. 저장 과정에서 값이 바뀌는 것이 정상인 행(예: 이름 앞뒤 공백 제거)은 데이터의 expectedBody",
+                  "    const expectedBody = pm.iterationData.get(\"expectedBody\");",
+                  "    const expectedObject = expectedBody !== undefined ? expectedBody : JSON.parse(pm.variables.get(\"requestBody\"));",
+                  "    const label = expectedBody !== undefined ? \"기대 값(expectedBody)\" : \"보낸 값\";",
+                  "",
+                  "    pm.test(`[Data]${caseName}: 응답이 ${label}과 같음`, () => {",
+                  "      const { reservationId, status, ...rest } = res;   // 서비스가 붙인 두 필드를 빼고 비교",
+                  "      pm.expect(rest).to.eql(expectedObject);",
+                  "    });",
+                  "  }",
+                  "",
+                  "  pm.variables.set(\"reservationId\", res.reservationId);",
+                  "} else {",
+                  "  pm.variables.unset(\"reservationId\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{requestBody}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{caseServiceUrl}}/reservations",
+              "host": [
+                "{{caseServiceUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "호출 기록 확인",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.iterationData.get(\"id\");",
+                  "const caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");",
+                  "const expected = pm.iterationData.get(\"expectedStatus\");",
+                  "",
+                  "pm.test(`[중계]${caseName}: 기록 조회 200`, () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const calls = pm.response.json();                          // [{ method, path, body, status }, ...]",
+                  "  const called = calls.map((c) => `${c.method} ${c.path}`);  // [\"POST /booking\", ...]",
+                  "",
+                  "  console.log(`[중계]${caseName} 예약 API 호출 기록\\n` +",
+                  "    (calls.length ? calls.map((c) => `  ${c.method} ${c.path} → ${c.status} ${JSON.stringify(c.body)}`).join(\"\\n\") : \"  (없음)\"));",
+                  "",
+                  "  if (expected === 201) {",
+                  "    pm.test(`[중계]${caseName}: 예약 API 호출 1건 (POST /booking)`, () => {",
+                  "      pm.expect(called, \"예약 API 호출 기록\").to.eql([\"POST /booking\"]);",
+                  "    });",
+                  "  } else {",
+                  "    pm.test(`[중계]${caseName}: 예약 API 호출 없음`, () => {",
+                  "      pm.expect(called, \"예약 API 호출 기록\").to.eql([]);",
+                  "    });",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{relayUrl}}/_relay/calls",
+              "host": [
+                "{{relayUrl}}"
+              ],
+              "path": [
+                "_relay",
+                "calls"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "예약 API 교차 검증",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 201이 기대이고 예약이 만들어진 행만 교차 검증 (400 행은 건너뜀)",
+                  "if (pm.iterationData.get(\"expectedStatus\") !== 201 || !pm.variables.get(\"reservationId\")) {",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.iterationData.get(\"id\");",
+                  "const caseName = id ? `[${id}] ${pm.iterationData.get(\"case\")}` : pm.iterationData.get(\"case\");",
+                  "",
+                  "pm.test(`[교차]${caseName}: 예약 API에 저장됨`, () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  // 기대값은 보낸 값. 저장 과정에서 값이 바뀌는 것이 정상인 행(예: 이름 앞뒤 공백 제거)은 데이터의 expectedBody",
+                  "  const expectedBody = pm.iterationData.get(\"expectedBody\");",
+                  "  const expectedObject = expectedBody !== undefined ? expectedBody : JSON.parse(pm.variables.get(\"requestBody\"));",
+                  "  const word = expectedBody !== undefined ? \"기대\" : \"보냄\";",
+                  "  const saved = pm.response.json();",
+                  "",
+                  "  // [매핑 이름, 기대 값, 저장된 값]  ← 08 ②와 같은 필드 대응표",
+                  "  const fields = [",
+                  "    [\"guest.firstName → firstname\",              expectedObject.guest.firstName, saved.firstname],",
+                  "    [\"guest.lastName → lastname\",                expectedObject.guest.lastName,  saved.lastname],",
+                  "    [\"stay.checkIn → bookingdates.checkin\",      expectedObject.stay.checkIn,    saved.bookingdates.checkin],",
+                  "    [\"stay.checkOut → bookingdates.checkout\",    expectedObject.stay.checkOut,   saved.bookingdates.checkout],",
+                  "    [\"price → totalprice\",                       expectedObject.price,           saved.totalprice],",
+                  "    [\"deposit → depositpaid\",                    expectedObject.deposit,         saved.depositpaid],",
+                  "    [\"request → additionalneeds\",                expectedObject.request,         saved.additionalneeds],   // 선택 필드: 안 보냈으면 둘 다 undefined",
+                  "  ];",
+                  "",
+                  "  console.log(`[교차]${caseName} ${word} 값 / 저장된 값\\n` + fields.map(([name, a, b]) =>",
+                  "    `${JSON.stringify(a) === JSON.stringify(b) ? \"  \" : \"✗ \"}${name}: ${word} ${JSON.stringify(a)} / 저장 ${JSON.stringify(b)}`",
+                  "  ).join(\"\\n\"));",
+                  "",
+                  "  for (const [name, a, b] of fields) {",
+                  "    pm.test(`[교차]${caseName}: ${name}`, () => {",
+                  "      pm.expect(b, name).to.eql(a);",
+                  "    });",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{reservationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{reservationId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "예약 정리",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 예약이 만들어진 행만 정리 (기대와 달리 400 행에서 생성된 경우도 정리)",
+                  "if (!pm.variables.get(\"reservationId\")) {",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"[정리] 예약 삭제 204\", () => {",
+                  "  pm.response.to.have.status(204);",
+                  "});",
+                  "pm.variables.unset(\"reservationId\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{caseServiceUrl}}/reservations/{{reservationId}}",
+              "host": [
+                "{{caseServiceUrl}}"
               ],
               "path": [
                 "reservations",
